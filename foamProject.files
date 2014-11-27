@@ -62,3 +62,5 @@ spectrum.glsl
 variances.glsl
 vec4.h
 whitecap_precompute.glsl
+particles_render.glsl
+particles_update.glsl

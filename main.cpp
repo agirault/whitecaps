@@ -42,11 +42,13 @@ enum {
 	TEXTURE_FFT_PONG,
 	TEXTURE_BUTTERFLY,
 	TEXTURE_GAUSSZ,
+    TEXTURE_PART_POSITION, /* TEST ALEXIS */
 	TEXTURE_COUNT,
 
 	// buffers
 	BUFFER_GRID_INDEX = 0,
 	BUFFER_GRID_VERTEX,
+    BUFFER_PART_VERTEX,
 	BUFFER_COUNT,
 
 	// renderenderbuffers
@@ -57,22 +59,25 @@ enum {
 	FRAMEBUFFER_FFT0 = 0,
 	FRAMEBUFFER_FFT1,
 	FRAMEBUFFER_SKY,
-	FRAMEBUFFER_VARIANCES,
-	FRAMEBUFFER_GAUSS,
+    FRAMEBUFFER_VARIANCES,
+    FRAMEBUFFER_GAUSS,
+    FRAMEBUFFER_PARTICLES, /* TEST ALEXIS */
 	FRAMEBUFFER_COUNT,
 
 	// programs
-	PROGRAM_RENDER = 0,
-	PROGRAM_SKY,
-	PROGRAM_SKYMAP,
-	PROGRAM_CLOUDS,
+    PROGRAM_RENDER_OCEAN = 0,
+    PROGRAM_RENDER_SKY,
+    PROGRAM_SKYMAP,
+    PROGRAM_RENDER_CLOUDS,
 	PROGRAM_SHOW_SPECTRUM,
 	PROGRAM_INIT,
 	PROGRAM_VARIANCES,
 	PROGRAM_FFTX,
 	PROGRAM_FFTY,
 	PROGRAM_WHITECAP_PRECOMPUTE,
-	PROGRAM_COUNT
+    PROGRAM_UPDATE_PARTICLES, /* TEST ALEXIS */
+    PROGRAM_RENDER_PARTICLES, /* TEST ALEXIS */
+    PROGRAM_COUNT
 };
 
 GLuint      renderbuffers[RENDERBUFFER_COUNT];
@@ -174,6 +179,10 @@ float *spectrum34 = NULL;
 // Foam
 float jacobian_scale = 0.2f;
 
+/* TEST ALEXIS */
+//particles
+const int MAX_PARTICLES_NUMBER = 1000;
+
 #ifdef _BENCH
 std::ofstream gnuplot("perf.dat", std::ofstream::out);
 #endif //_BENCH
@@ -271,20 +280,21 @@ void drawQuad()
 
 void drawClouds(const vec4f &sun, const mat4f &mat)
 {
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glUseProgram(programs[PROGRAM_CLOUDS]->program);
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "worldToScreen"), 1, true, mat.coefficients());
-    glUniform3f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "worldCamera"), 0.0, 0.0, camera::z);
-    glUniform3f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "worldSunDir"), sun.x, sun.y, sun.z);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "hdrExposure"), hdrExposure);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "octaves"), octaves);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "lacunarity"), lacunarity);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "gain"), gain);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "norm"), norm);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "clamp1"), clamp1);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "clamp2"), clamp2);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "cloudsColor"), cloudColor[0], cloudColor[1], cloudColor[2], cloudColor[3]);
+    glUseProgram(programs[PROGRAM_RENDER_CLOUDS]->program);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "worldToScreen"), 1, true, mat.coefficients());
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "worldCamera"), 0.0, 0.0, camera::z);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "worldSunDir"), sun.x, sun.y, sun.z);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "hdrExposure"), hdrExposure);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "octaves"), octaves);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "lacunarity"), lacunarity);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "gain"), gain);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "norm"), norm);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "clamp1"), clamp1);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "clamp2"), clamp2);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "cloudsColor"), cloudColor[0], cloudColor[1], cloudColor[2], cloudColor[3]);
     glBegin(GL_TRIANGLE_STRIP);
     glVertex3f(-1e6, -1e6, 500.0);
     glVertex3f(1e6, -1e6, 500.0);
@@ -292,6 +302,37 @@ void drawClouds(const vec4f &sun, const mat4f &mat)
     glVertex3f(1e6, 1e6, 500.0);
     glEnd();
     glDisable(GL_BLEND);
+
+}
+    /* TEST ALEXIS */
+void drawParticles(const mat4f &mat)
+{
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(programs[PROGRAM_RENDER_PARTICLES]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "particlesPosition"), TEXTURE_PART_POSITION);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, mat.coefficients());
+    glPointSize( 5.0 );
+    glBegin(GL_POINTS);
+    for(int i = 0; i < MAX_PARTICLES_NUMBER; ++i)
+    {
+        float test = (float)i/(float)MAX_PARTICLES_NUMBER;
+        glVertex2f(test, 0);
+    }
+    glEnd();
+
+/*
+    //Test avec buffer
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_PART_VERTEX]);
+    glVertexPointer(1, GL_FLOAT, sizeof(float), 0); // ici aussi bizarre 1er paramètre
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDrawArrays(GL_POINTS, 0, MAX_PARTICLES_NUMBER); //les paramètres ne fonctionnent pas?
+    glPointSize( 10.0 );
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    //glDisable(GL_BLEND);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+*/
 }
 
 // ----------------------------------------------------------------------------
@@ -300,28 +341,28 @@ void drawClouds(const vec4f &sun, const mat4f &mat)
 
 void loadPrograms(bool all)
 {
-	char* files[2];
+    char* files[2];
 	char options[512];
-	files[0] = "atmosphere.glsl";
+    files[0] = "atmosphere.glsl";
 	files[1] = "ocean.glsl";
 	sprintf(options, "#define %sSEA_CONTRIB\n#define %sSUN_CONTRIB\n#define %sSKY_CONTRIB\n#define %sCLOUDS\n#define %sHARDWARE_ANISTROPIC_FILTERING\n#define %sFOAM_CONTRIB\n",
 	        seaContrib ? "" : "NO_", sunContrib ? "" : "NO_", skyContrib ? "" : "NO_", cloudLayer ? "" : "NO_", manualFilter ? "NO_" : "", foamContrib ? "" : "NO_");
 
-	if (programs[PROGRAM_RENDER] != NULL)
+    if (programs[PROGRAM_RENDER_OCEAN] != NULL)
 	{
-		delete programs[PROGRAM_RENDER];
-		programs[PROGRAM_RENDER] = NULL;
+        delete programs[PROGRAM_RENDER_OCEAN];
+        programs[PROGRAM_RENDER_OCEAN] = NULL;
 	}
-	programs[PROGRAM_RENDER] = new Program(2, files, options);
-	glUseProgram(programs[PROGRAM_RENDER]->program);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "inscatterSampler"), TEXTURE_INSCATTER);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "skySampler"), TEXTURE_SKY);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "spectrum_1_2_Sampler"), TEXTURE_SPECTRUM12);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "spectrum_3_4_Sampler"), TEXTURE_SPECTRUM34);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "slopeVarianceSampler"), TEXTURE_SLOPE_VARIANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "foamDistribution"), TEXTURE_GAUSSZ);
+    programs[PROGRAM_RENDER_OCEAN] = new Program(2, files, options);
+    glUseProgram(programs[PROGRAM_RENDER_OCEAN]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "inscatterSampler"), TEXTURE_INSCATTER);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "skySampler"), TEXTURE_SKY);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "spectrum_1_2_Sampler"), TEXTURE_SPECTRUM12);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "spectrum_3_4_Sampler"), TEXTURE_SPECTRUM34);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "slopeVarianceSampler"), TEXTURE_SLOPE_VARIANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "foamDistribution"), TEXTURE_GAUSSZ);
 
 	if (!all)
 	{
@@ -330,42 +371,42 @@ void loadPrograms(bool all)
 
 	files[0] = "atmosphere.glsl";
 	files[1] = "sky.glsl";
-	if (programs[PROGRAM_SKY] != NULL)
+    if (programs[PROGRAM_RENDER_SKY] != NULL)
 	{
-		delete programs[PROGRAM_SKY];
-		programs[PROGRAM_SKY] = NULL;
+        delete programs[PROGRAM_RENDER_SKY];
+        programs[PROGRAM_RENDER_SKY] = NULL;
 	}
-	programs[PROGRAM_SKY] = new Program(2, files, options);
-	glUseProgram(programs[PROGRAM_SKY]->program);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKY]->program, "IrradianceSampler"), TEXTURE_IRRADIANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKY]->program, "inscatterSampler"), TEXTURE_INSCATTER);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKY]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKY]->program, "skySampler"), TEXTURE_SKY);
+    programs[PROGRAM_RENDER_SKY] = new Program(2, files, options);
+    glUseProgram(programs[PROGRAM_RENDER_SKY]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "IrradianceSampler"), TEXTURE_IRRADIANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "inscatterSampler"), TEXTURE_INSCATTER);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "skySampler"), TEXTURE_SKY);
 
 	files[0] = "atmosphere.glsl";
 	files[1] = "skymap.glsl";
-	if (programs[PROGRAM_SKYMAP] != NULL)
+    if (programs[PROGRAM_SKYMAP] != NULL)
 	{
-		delete programs[PROGRAM_SKYMAP];
-		programs[PROGRAM_SKYMAP] = NULL;
+        delete programs[PROGRAM_SKYMAP];
+        programs[PROGRAM_SKYMAP] = NULL;
 	}
-	programs[PROGRAM_SKYMAP] = new Program(2, files, options);
-	glUseProgram(programs[PROGRAM_SKYMAP]->program);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "inscatterSampler"), TEXTURE_INSCATTER);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "noiseSampler"), TEXTURE_NOISE);
+    programs[PROGRAM_SKYMAP] = new Program(2, files, options);
+    glUseProgram(programs[PROGRAM_SKYMAP]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "inscatterSampler"), TEXTURE_INSCATTER);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "noiseSampler"), TEXTURE_NOISE);
 
-	if (programs[PROGRAM_CLOUDS] == NULL)
+    if (programs[PROGRAM_RENDER_CLOUDS] == NULL)
 	{
 		files[0] = "atmosphere.glsl";
 		files[1] = "clouds.glsl";
-		programs[PROGRAM_CLOUDS] = new Program(2, files);
-		glUseProgram(programs[PROGRAM_CLOUDS]->program);
-		glUniform1i(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
-		glUniform1i(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "inscatterSampler"), TEXTURE_INSCATTER);
-		glUniform1i(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
-		glUniform1i(glGetUniformLocation(programs[PROGRAM_CLOUDS]->program, "noiseSampler"), TEXTURE_NOISE);
+        programs[PROGRAM_RENDER_CLOUDS] = new Program(2, files);
+        glUseProgram(programs[PROGRAM_RENDER_CLOUDS]->program);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "skyIrradianceSampler"), TEXTURE_IRRADIANCE);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "inscatterSampler"), TEXTURE_INSCATTER);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "transmittanceSampler"), TEXTURE_TRANSMITTANCE);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_CLOUDS]->program, "noiseSampler"), TEXTURE_NOISE);
 	}
 
 	files[0] = "spectrum.glsl";
@@ -434,6 +475,25 @@ void loadPrograms(bool all)
 		programs[PROGRAM_WHITECAP_PRECOMPUTE] = NULL;
 	}
 	programs[PROGRAM_WHITECAP_PRECOMPUTE] = new Program(1, files);
+
+    /* TEST ALEXIS */
+    files[0] = "particles_update.glsl";
+    if (programs[PROGRAM_UPDATE_PARTICLES] != NULL)
+    {
+        delete programs[PROGRAM_UPDATE_PARTICLES];
+        programs[PROGRAM_UPDATE_PARTICLES] = NULL;
+    }
+    programs[PROGRAM_UPDATE_PARTICLES] = new Program(1, files);
+
+    files[0] = "particles_render.glsl";
+    if (programs[PROGRAM_RENDER_PARTICLES] != NULL)
+    {
+        delete programs[PROGRAM_RENDER_PARTICLES];
+        programs[PROGRAM_RENDER_PARTICLES] = NULL;
+    }
+    programs[PROGRAM_RENDER_PARTICLES] = new Program(1, files);
+
+    /**/
 
 	// Back to default pipeline
 	glUseProgram(0);
@@ -759,6 +819,38 @@ float *computeButterflyLookupTexture()
 	return data;
 }
 
+float randf() //rand between -1 and 1
+{
+    float randf = (float)(rand());
+    return (randf*(2.0/RAND_MAX)-1);
+}
+
+float * computeInitialParticulesPosition()
+{
+    float *data = new float[MAX_PARTICLES_NUMBER*3];
+
+    for(int i=0; i < MAX_PARTICLES_NUMBER*3; i++)
+    {
+        data[i] = randf()*250;
+    }
+    return data;
+}
+
+float * computeInitialParticulesPosition2() //TEST vertex shader render particles direct on screen
+{
+    float *data = new float[MAX_PARTICLES_NUMBER*3];
+
+    for(int i=0; i < MAX_PARTICLES_NUMBER*3; i++)
+    {
+        if((i+1)%3 == 0){
+            data[i] = 0.0;
+        }else{
+            data[i] = (float)(rand())*(2.0/RAND_MAX)-1.0;
+        }
+    }
+    return data;
+}
+
 void simulateFFTWaves(float t)
 {
 	// init
@@ -793,7 +885,7 @@ void simulateFFTWaves(float t)
 		        2.0 * M_PI * FFT_SIZE / GRID3_SIZE,
 		        2.0 * M_PI * FFT_SIZE / GRID4_SIZE);
 	glUniform1f(glGetUniformLocation(programs[PROGRAM_INIT]->program, "t"), t);
-	drawQuad();
+    drawQuad();
 
     // fft passes
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_FFT1]);
@@ -809,12 +901,12 @@ void simulateFFTWaves(float t)
 		if (i%2 == 0)
 		{
 		    glUniform1i(glGetUniformLocation(programs[PROGRAM_FFTX]->program, "imgSampler"), TEXTURE_FFT_PING);
-		    glDrawBuffer(GL_COLOR_ATTACHMENT1_EXT);
+            glDrawBuffer(GL_COLOR_ATTACHMENT1_EXT);
 		}
 		else
 		{
 		    glUniform1i(glGetUniformLocation(programs[PROGRAM_FFTX]->program, "imgSampler"), TEXTURE_FFT_PONG);
-		    glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
 		}
 		drawQuad();
 	}
@@ -1087,33 +1179,50 @@ void redisplayFunc() {
 
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_SKY]);
 	glViewport(0, 0, skyTexSize, skyTexSize);
-	glUseProgram(programs[PROGRAM_SKYMAP]->program);
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "sunDir"), sun.x, sun.y, sun.z);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "octaves"), octaves);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "lacunarity"), lacunarity);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "gain"), gain);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "norm"), norm);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "clamp1"), clamp1);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "clamp2"), clamp2);
-	glUniform4f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "cloudsColor"), cloudColor[0], cloudColor[1], cloudColor[2], cloudColor[3]);
-	glBegin(GL_TRIANGLE_STRIP);
+    glUseProgram(programs[PROGRAM_SKYMAP]->program);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "sunDir"), sun.x, sun.y, sun.z);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "octaves"), octaves);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "lacunarity"), lacunarity);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "gain"), gain);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "norm"), norm);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "clamp1"), clamp1);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "clamp2"), clamp2);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_SKYMAP]->program, "cloudsColor"), cloudColor[0], cloudColor[1], cloudColor[2], cloudColor[3]);
+    glBegin(GL_TRIANGLE_STRIP);
 	glVertex2f(-1, -1);
 	glVertex2f(1, -1);
 	glVertex2f(-1, 1);
 	glVertex2f(1, 1);
-	glEnd();
+    glEnd();
 	glActiveTexture(GL_TEXTURE0 + TEXTURE_SKY);
 	glGenerateMipmapEXT(GL_TEXTURE_2D);
 
 	// update wave heights
 	static double t = 0.0;
 	if(animate)
-		t += delta*speed;
+        t += delta*speed;
 
 	// solve fft
-	simulateFFTWaves(t);
+    simulateFFTWaves(t);
 	glActiveTexture(GL_TEXTURE0 + TEXTURE_FFT_PING);
 		glGenerateMipmapEXT(GL_TEXTURE_2D_ARRAY_EXT);
+
+    /* TEST ALEXIS */
+    // particles
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
+    glViewport(0, 0, MAX_PARTICLES_NUMBER, 1);
+    glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "vary"), (randf()/2.0)+1);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "choppy"), choppy_factor0, choppy_factor1, choppy_factor2, choppy_factor3);
+    glBegin(GL_TRIANGLE_STRIP);
+    glVertex3f(-1.0, -1.0, 0.0);
+    glVertex3f(+1.0, -1.0, 1.0);
+    glVertex3f(-1.0, +1.0, 0.0);
+    glVertex3f(+1.0, +1.0, 1.0);
+    glEnd();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 	// filtering
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_GAUSS]);
@@ -1122,7 +1231,7 @@ void redisplayFunc() {
 	glUniform1i(glGetUniformLocation(programs[PROGRAM_WHITECAP_PRECOMPUTE]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
 	glUniform4f(glGetUniformLocation(programs[PROGRAM_WHITECAP_PRECOMPUTE]->program, "choppy"), choppy_factor0, choppy_factor1, choppy_factor2, choppy_factor3);
 
-	drawQuad();
+    drawQuad();
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 	glActiveTexture(GL_TEXTURE0 + TEXTURE_GAUSSZ);
@@ -1169,29 +1278,29 @@ void redisplayFunc() {
 		return;
 	}
 
-	// Final Rendering
+    // Final Rendering
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
-	glUseProgram(programs[PROGRAM_RENDER]->program);
-	glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "worldToScreen"), 1, true, (proj * view).coefficients());
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "worldDirToScreen"), 1, true, (proj * view).coefficients());
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "modelView"), 1, true, view.coefficients());
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "worldSunDir"), sun.x, sun.y, sun.z);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "hdrExposure"), hdrExposure);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "jacobian_scale"), jacobian_scale);
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "seaColor"), seaColor[0] * seaColor[3], seaColor[1] * seaColor[3], seaColor[2] * seaColor[3]);
-	glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
-	glUniform2f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "spectrum"), show_spectrum);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "normals"), normals);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "choppy"), choppy);
-	glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
+    glUseProgram(programs[PROGRAM_RENDER_OCEAN]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToScreen"), 1, true, (proj * view).coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldDirToScreen"), 1, true, (proj * view).coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "modelView"), 1, true, view.coefficients());
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldSunDir"), sun.x, sun.y, sun.z);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "hdrExposure"), hdrExposure);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "jacobian_scale"), jacobian_scale);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "seaColor"), seaColor[0] * seaColor[3], seaColor[1] * seaColor[3], seaColor[2] * seaColor[3]);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
+    glUniform2f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "spectrum"), show_spectrum);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "normals"), normals);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "choppy"), choppy);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
 
 	if (grid)
 	{
@@ -1204,30 +1313,34 @@ void redisplayFunc() {
 		glPolygonMode(GL_BACK, GL_FILL);
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_GRID_VERTEX]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[BUFFER_GRID_INDEX]);
-	glVertexPointer(4, GL_FLOAT, 16, 0);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawElements(GL_TRIANGLES, vboSize, GL_UNSIGNED_INT, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_GRID_VERTEX]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[BUFFER_GRID_INDEX]);
+    glVertexPointer(4, GL_FLOAT, 4*sizeof(float), 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDrawElements(GL_TRIANGLES, vboSize, GL_UNSIGNED_INT, 0);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glDisable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDisable(GL_CULL_FACE);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	if (cloudLayer && ch > 3000.0)
 	{
 		drawClouds(sun, proj * view);
 	}
 
-	/// render atmosphere (after scene -> use early Z !!)
-	glUseProgram(programs[PROGRAM_SKY]->program);
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_SKY]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
-	glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_SKY]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_SKY]->program, "worldCamera"), 0.0f, 0.0f, ch);
-	glUniform3f(glGetUniformLocation(programs[PROGRAM_SKY]->program, "worldSunDir"), sun.x, sun.y, sun.z);
-	glUniform1f(glGetUniformLocation(programs[PROGRAM_SKY]->program, "hdrExposure"), hdrExposure);
-	glBegin(GL_TRIANGLE_STRIP);
+    drawParticles(proj * view);
+
+    // render atmosphere (after scene -> use early Z !!)
+    glUseProgram(programs[PROGRAM_RENDER_SKY]->program);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "worldCamera"), 0.0f, 0.0f, ch);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "worldSunDir"), sun.x, sun.y, sun.z);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_SKY]->program, "hdrExposure"), hdrExposure);
+    glBegin(GL_TRIANGLE_STRIP);
 	glVertex2f(-1, -1);
 	glVertex2f(1, -1);
 	glVertex2f(-1, 1);
@@ -1635,7 +1748,22 @@ int main(int argc, char* argv[]) {
 		glTexImage3D(GL_TEXTURE_2D_ARRAY_EXT, 0, GL_RGBA16F_ARB, FFT_SIZE, FFT_SIZE, 8, 0, GL_RGBA, GL_FLOAT, NULL);
 		glGenerateMipmapEXT(GL_TEXTURE_2D_ARRAY_EXT);
 
-	generateWavesSpectrum();
+    /* TEST ALEXIS */
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION);
+            glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION]);
+            glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            data = computeInitialParticulesPosition();
+            glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, MAX_PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
+            /*for(int i=0; i < MAX_PARTICLES_NUMBER*3; i++)
+            {
+                if((i+1)%3 == 0) cout<<data[i]<<endl;
+                else cout<<data[i]<<" ";
+            }*/
+            delete[] data;
+    /**/
+
+    generateWavesSpectrum(); // initial data pour TEXTURE_SPECTRUM12 et TEXTURE_SPECTRUM34
 
 // FrameBuffers
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_VARIANCES]);
@@ -1672,6 +1800,12 @@ int main(int argc, char* argv[]) {
 		glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT6_EXT, textures[TEXTURE_GAUSSZ], 0, 6);
 		glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT7_EXT, textures[TEXTURE_GAUSSZ], 0, 7);
 
+        /* TEST ALEXIS */
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
+            glFramebufferTextureEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, textures[TEXTURE_PART_POSITION], 0);
+        /**/
+
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_SKY]);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
 		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_SKY], 0);
@@ -1683,11 +1817,25 @@ int main(int argc, char* argv[]) {
 	// Grid
 	generateMesh();
 
+    /* TEST ALEXIS */
+    // Buffer 0 to 1 with MAX_PARTICLES_NUMBER terms
+    glDeleteBuffers(1, &buffers[BUFFER_PART_VERTEX]);
+    glGenBuffers(1, &buffers[BUFFER_PART_VERTEX]);              // crée buffer
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_PART_VERTEX]); // bind buffer à GL_ARRAY_BUFFER
+    float *index = new float[MAX_PARTICLES_NUMBER];             // prépare data
+    for(int i = 0; i < MAX_PARTICLES_NUMBER; i++)
+    {
+        index[i]= (float)i/(MAX_PARTICLES_NUMBER);            // rempli data
+    }
+    glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES_NUMBER*sizeof(float), index, GL_STATIC_DRAW); // rempli buffer avec data
+    delete[] index;                                             // supprime data
+    glBindBuffer(GL_ARRAY_BUFFER, 0);                           // unbind buffer à GL_ARRAY_BUFFER
+
 	// Programs
 	loadPrograms(true);
 
 	// Slope
-	computeSlopeVarianceTex(NULL);
+    computeSlopeVarianceTex(NULL);
 
 //	GLint maxColorAttach = 0;
 //	glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS_EXT, &maxColorAttach);
