@@ -24,7 +24,7 @@ void main() {
 
 	// fftWavesSampler has 4 height values
 	// heights.r : Lx, Lz = x0
-	// heights.b : Lx, Lz = x1
+        // heights.g : Lx, Lz = x1
 	// heights.b : Lx, Lz = x2
 	// heights.a : Lx, Lz = x3
 	// with x0 < x1 < x2 < x3
