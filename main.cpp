@@ -1291,6 +1291,7 @@ void redisplayFunc() {
     glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
     drawQuad();
 /* FIN TEST */
@@ -1847,7 +1848,7 @@ int main(int argc, char* argv[]) {
 
     // particles lifetime
     data = computeInitialPositions(PARTICLES_NUMBER,2.0);
-    displayValues(data,PARTICLES_NUMBER);
+    //displayValues(data,PARTICLES_NUMBER);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_LIFETIME);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

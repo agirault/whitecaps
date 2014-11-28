@@ -17,6 +17,7 @@ uniform sampler1D pointsOldVelocity;
 uniform sampler1D pointsLifetime;
 uniform float gravity;
 uniform float lifeLossStep;
+uniform float dt;
 
 void main()
 {
@@ -24,7 +25,7 @@ void main()
     vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
     vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
     vec3 grav = vec3(0.0,0.0,-gravity);
-    vec3 newPos = oldPos + oldVel + grav;
+    vec3 newPos = oldPos + oldVel*dt + grav*dt*dt;
     vec3 newVel = newPos - oldPos;
 
     gl_FragData[0] = vec4(newPos, 1.0);
