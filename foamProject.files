@@ -64,3 +64,4 @@ vec4.h
 whitecap_precompute.glsl
 particles_render.glsl
 particles_update.glsl
+ocean_position.glsl
