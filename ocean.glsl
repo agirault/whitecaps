@@ -45,6 +45,7 @@
 
 uniform mat4 screenToCamera; // screen space to camera space
 uniform mat4 cameraToWorld; // camera space to world space
+uniform mat4 worldToCamera; // world space to camera space
 uniform mat4 worldToScreen; // world space to screen space
 uniform mat4 worldDirToScreen; // world space to screen space
 uniform mat4 modelView;       // modelViewMatrix
@@ -58,6 +59,7 @@ uniform vec4 choppy_factor;
 uniform float jacobian_scale;
 
 uniform sampler2DArray fftWavesSampler;	// ocean surface
+uniform sampler2D oceanSurface;	// ocean surface already sampled
 uniform sampler2DArray foamDistribution;
 
 uniform vec4 GRID_SIZES;
@@ -80,6 +82,13 @@ vec2 oceanPos(vec4 vertex) {
 
 void main() {
     u = oceanPos(gl_Vertex);
+
+/* TEST ALEXIS
+    vec2 uv = vec2( u.x/gridSize.x , u.y/gridSize.y ) ; // should be between 0 and 1 to takr from texture
+    P = texture2D( oceanSurface, uv).rgb;
+    gl_Position = worldToScreen * vec4(P, 1.0);
+/**/
+
     vec2 ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     vec2 uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
     vec2 dux = ux - u;
@@ -102,8 +111,9 @@ void main() {
     }
     P = vec3(u + dP.xy, dP.z);
 
-	// Final position
-	gl_Position = worldToScreen * vec4(P, 1.0);
+    // Final position
+    gl_Position = worldToScreen * vec4(P, 1.0);
+
 }
 
 #endif
