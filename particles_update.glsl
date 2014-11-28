@@ -12,20 +12,19 @@ void main() {
 
 #ifdef _FRAGMENT_
 
-#define LAYER_JACOBIAN_XX 	5.0
-#define LAYER_JACOBIAN_YY	6.0
-#define LAYER_JACOBIAN_XY	7.0
-
 uniform sampler1D pointsOldPosition;
-uniform sampler2DArray fftWavesSampler;
-uniform vec4 choppy;
-uniform float vary;
+uniform sampler1D pointsOldVelocity;
+uniform float gravity;
 
 void main()
 {
-    vec3 pos = texture1D(pointsOldPosition, u).rgb;
-    pos = pos*vary;
-    gl_FragData[0] = vec4(pos.x, pos.y, pos.z, 1.0);
+    vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
+    vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
+    vec3 newPos = oldPos + oldVel + vec3(0.0,0.0,-gravity);
+    vec3 newVol = newPos - oldPos;
+
+    gl_FragData[0] = vec4(newPos, 1.0);
+    gl_FragData[1] = vec4(newVol, 1.0);
 }
 
 #endif
