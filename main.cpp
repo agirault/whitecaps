@@ -329,7 +329,7 @@ void drawParticles(const mat4f &mat)
         glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PONG);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, mat.coefficients());
-    glPointSize( PARTICLES_SIZES );
+    glPointSize( PARTICLES_SIZE );
     glBegin(GL_POINTS);
     for(int i = 0; i < PARTICLES_NUMBER; ++i)
     {
