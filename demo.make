@@ -26,7 +26,7 @@ ifeq ($(config),debug64)
   DEFINES   += -DDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m64
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m64 -Wno-write-strings
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -m64 -L/usr/lib64 -Wl,-rpath,./lib/linux/lin64 -L./lib/linux/lin64 -lGLEW -lglut -lAntTweakBar -lGL -Llib/linux/lin64
   LIBS      += 
@@ -48,7 +48,7 @@ ifeq ($(config),release64)
   DEFINES   += -DNDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m64
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m64 -Wno-write-strings
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -s -m64 -L/usr/lib64 -Wl,-rpath,./lib/linux/lin64 -L./lib/linux/lin64 -lGLEW -lglut -lAntTweakBar -lGL -Llib/linux/lin64
   LIBS      += 
