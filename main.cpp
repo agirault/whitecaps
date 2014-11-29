@@ -190,13 +190,13 @@ float jacobian_scale = 0.2f;
 /* TEST ALEXIS */
 //particles
 bool pingpong = true;
-const int PARTICLES_NUMBER = 1;
+const int PARTICLES_NUMBER = 800;
 const float PARTICLES_SIZE = 5.0;
-const float PARTICLE_POS_ORDER = 200;
+const float PARTICLE_POS_ORDER = 100;
 const float PARTICLE_VEL_ORDER = 15;
-const float PARTICLE_LIFE_ORDER = 3;
+const float PARTICLE_LIFE_ORDER = 2;
 const float gravity = 1.0;
-const float lifeLossStep = 0.01;
+const float lifeLossStep = 0.03;
 
 #ifdef _BENCH
 std::ofstream gnuplot("perf.dat", std::ofstream::out);
@@ -1278,7 +1278,7 @@ void redisplayFunc() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 */
     //Velocity
-    if(speed != 0.0 )
+    if(animate && speed != 0.0 )
     {
         // particles update
         if(pingpong)
@@ -1300,7 +1300,7 @@ void redisplayFunc() {
         glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
         drawQuad();
-    }
+    } else pingpong = !pingpong;
 /* FIN TEST */
 
 	// filtering
@@ -1825,7 +1825,7 @@ int main(int argc, char* argv[]) {
 /* TEST ALEXIS */
     //particles position
     data = computeInitialPositions(PARTICLES_NUMBER*3,PARTICLE_POS_ORDER);
-    displayValues(data,PARTICLES_NUMBER*3);
+    //displayValues(data,PARTICLES_NUMBER*3);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION_PING);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PING]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1840,7 +1840,7 @@ int main(int argc, char* argv[]) {
 
     // particles velocity
     data = computeInitialVelocities(PARTICLES_NUMBER*3,PARTICLE_VEL_ORDER);
-    displayValues(data,PARTICLES_NUMBER*3);
+    //displayValues(data,PARTICLES_NUMBER*3);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_PING);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PING]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1855,7 +1855,7 @@ int main(int argc, char* argv[]) {
 
     // particles lifetime
     data = computeInitialPositions(PARTICLES_NUMBER,PARTICLE_LIFE_ORDER);
-    displayValues(data,PARTICLES_NUMBER);
+    //displayValues(data,PARTICLES_NUMBER);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_LIFETIME);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
