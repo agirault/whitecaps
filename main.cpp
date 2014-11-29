@@ -1454,16 +1454,17 @@ void keyboardFunc(unsigned char c, int x, int y) {
 	if(c == 27) {
 		::exit(0);
     }
-    if(c == 'K'|| c == 'k') {
+    if((c == 'K'|| c == 'k') || (keyboardFrench && (c == 'W' || c == 'w')) || (!keyboardFrench && (c == 'Z' || c == 'z'))) {
         keyboardFrench = !keyboardFrench;
-    }
-    if(c == '0') {
-        camera::vely = 0.0;
-        camera::velx = 0.0;
     }
 	if (c >= '1' && c <= '9') {
 		save(c - '0');
 	}
+    if(c == 'O'|| c == 'o') {
+        camera::vely = 0.0;
+        camera::velx = 0.0;
+        camera::velz = 0.0;
+    }
     if ((keyboardFrench && (c == 'Z' || c == 'z')) ||(!keyboardFrench && (c == 'W' || c == 'w')) ) {
         camera::vely = max(-1.0, camera::vely - cos(camera::phi*M_PI/180));
         camera::velx = min(1.0, camera::velx + sin(camera::phi*M_PI/180));
