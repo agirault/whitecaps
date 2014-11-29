@@ -191,12 +191,12 @@ float jacobian_scale = 0.2f;
 //particles
 bool pingpong = true;
 const int PARTICLES_NUMBER = 800;
-const float PARTICLES_SIZE = 5.0;
+const float PARTICLES_SIZE = 100000;
 const float PARTICLE_POS_ORDER = 100;
-const float PARTICLE_VEL_ORDER = 15;
+const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 2;
-const float gravity = 1.0;
-const float lifeLossStep = 0.03;
+const float gravity = 0.5;
+const float lifeLossStep = 0.02;
 
 #ifdef _BENCH
 std::ofstream gnuplot("perf.dat", std::ofstream::out);
@@ -323,8 +323,6 @@ void drawClouds(const vec4f &sun, const mat4f &mat)
     /* TEST ALEXIS */
 void drawParticles(const mat4f &mat)
 {
-    //glEnable(GL_BLEND);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(programs[PROGRAM_RENDER_PARTICLES]->program);
     if(pingpong)
         glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PING);
@@ -332,7 +330,11 @@ void drawParticles(const mat4f &mat)
         glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PONG);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, mat.coefficients());
-    glPointSize( PARTICLES_SIZE );
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "spriteSize"), PARTICLES_SIZE);
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_POINT_SMOOTH);
     glBegin(GL_POINTS);
     for(int i = 0; i < PARTICLES_NUMBER; ++i)
     {
@@ -351,7 +353,6 @@ void drawParticles(const mat4f &mat)
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 */
-    //glDisable(GL_BLEND);
 }
 
 // ----------------------------------------------------------------------------
