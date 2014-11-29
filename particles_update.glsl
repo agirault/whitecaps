@@ -21,19 +21,19 @@ uniform float dt;
 
 void main()
 {
-    //Position and Velocity
+    //Position
     vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
     vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
     vec3 grav = vec3(0.0,0.0,-gravity);
     vec3 newPos = oldPos + oldVel*dt + grav*dt*dt;
-    vec3 newVel = newPos - oldPos;
+    vec3 newVel = (newPos - oldPos)/dt;
 
     gl_FragData[0] = vec4(newPos, 1.0);
     gl_FragData[1] = vec4(newVel, 1.0);
 
     //Lifetime
     float lifetime = texture1D(pointsLifetime, u).r;
-    lifetime -= lifeLossStep;
+    lifetime -= lifeLossStep*dt;
     if(lifetime < 0.0) lifetime = 0.0;
     if(lifetime > 1.0) lifetime = 1.0;
 

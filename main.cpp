@@ -190,10 +190,13 @@ float jacobian_scale = 0.2f;
 /* TEST ALEXIS */
 //particles
 bool pingpong = true;
-const int PARTICLES_NUMBER = 500;
+const int PARTICLES_NUMBER = 1;
 const float PARTICLES_SIZE = 5.0;
+const float PARTICLE_POS_ORDER = 200;
+const float PARTICLE_VEL_ORDER = 15;
+const float PARTICLE_LIFE_ORDER = 3;
 const float gravity = 1.0;
-const float lifeLossStep = 0.05;
+const float lifeLossStep = 0.01;
 
 #ifdef _BENCH
 std::ofstream gnuplot("perf.dat", std::ofstream::out);
@@ -1274,26 +1277,30 @@ void redisplayFunc() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 */
-    // particles update
-    if(pingpong)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
-    else
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
-    glViewport(0, 0, PARTICLES_NUMBER, 1);
-    glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
-    if(pingpong){
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PONG);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PONG);
-    }else{
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PING);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
-    }
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
+    //Velocity
+    if(speed != 0.0 )
+    {
+        // particles update
+        if(pingpong)
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
+        else
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
+        glViewport(0, 0, PARTICLES_NUMBER, 1);
+        glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
+        if(pingpong){
+            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PONG);
+            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PONG);
+        }else{
+            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PING);
+            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
+        }
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
+        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
+        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
+        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
-    drawQuad();
+        drawQuad();
+    }
 /* FIN TEST */
 
 	// filtering
@@ -1817,8 +1824,8 @@ int main(int argc, char* argv[]) {
 
 /* TEST ALEXIS */
     //particles position
-    data = computeInitialPositions(PARTICLES_NUMBER*3,100);
-    //displayValues(data,PARTICLES_NUMBER*3);
+    data = computeInitialPositions(PARTICLES_NUMBER*3,PARTICLE_POS_ORDER);
+    displayValues(data,PARTICLES_NUMBER*3);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION_PING);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PING]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1832,8 +1839,8 @@ int main(int argc, char* argv[]) {
     delete[] data;
 
     // particles velocity
-    data = computeInitialVelocities(PARTICLES_NUMBER*3,15.0);
-    //displayValues(data,PARTICLES_NUMBER*3);
+    data = computeInitialVelocities(PARTICLES_NUMBER*3,PARTICLE_VEL_ORDER);
+    displayValues(data,PARTICLES_NUMBER*3);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_PING);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PING]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1847,8 +1854,8 @@ int main(int argc, char* argv[]) {
     delete[] data;
 
     // particles lifetime
-    data = computeInitialPositions(PARTICLES_NUMBER,2.0);
-    //displayValues(data,PARTICLES_NUMBER);
+    data = computeInitialPositions(PARTICLES_NUMBER,PARTICLE_LIFE_ORDER);
+    displayValues(data,PARTICLES_NUMBER);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_LIFETIME);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
