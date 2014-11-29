@@ -321,7 +321,7 @@ void drawClouds(const vec4f &sun, const mat4f &mat)
 
 }
     /* TEST ALEXIS */
-void drawParticles(const mat4f &mat)
+void drawParticles(const mat4f &proj, const mat4f &view)
 {
     glUseProgram(programs[PROGRAM_RENDER_PARTICLES]->program);
     if(pingpong)
@@ -329,7 +329,7 @@ void drawParticles(const mat4f &mat)
     else
         glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PONG);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, mat.coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, (proj*view).coefficients());
     glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "spriteSize"), PARTICLES_SIZE);
 
@@ -1394,7 +1394,7 @@ void redisplayFunc() {
 		drawClouds(sun, proj * view);
 	}
 
-    drawParticles(proj * view);
+    drawParticles(proj,view);
 
     // render atmosphere (after scene -> use early Z !!)
     glUseProgram(programs[PROGRAM_RENDER_SKY]->program);
