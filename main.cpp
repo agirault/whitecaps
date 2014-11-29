@@ -1451,63 +1451,69 @@ void keyboardFunc(unsigned char c, int x, int y) {
 
 	if(c == 27) {
 		::exit(0);
-	}
-	if (c == '+') {
-		camera::theta = min(camera::theta + 1.0f, 90.0f - 0.001f);
-	}
-	if (c == '-'){
-		camera::theta = max(camera::theta - 1.0f, -45.0f);
-	}
+    }
+    if(c == '0') {
+        camera::vely = 0.0;
+        camera::velx = 0.0;
+    }
 	if (c >= '1' && c <= '9') {
 		save(c - '0');
 	}
-	if (c == 'z') {
-		camera::vely = max(-1.0f, camera::vely - 1.0f);
+    if (c == 'Z' || c == 'z') {//w
+        camera::vely = max(-1.0, camera::vely - cos(camera::phi*M_PI/180));
+        camera::velx = min(1.0, camera::velx + sin(camera::phi*M_PI/180));
 	}
-	if (c == 's') {
-		camera::vely = min(1.0f, camera::vely + 1.0f);
+    if (c == 'S' ||c == 's') {
+        camera::vely = min(1.0, camera::vely + cos(camera::phi*M_PI/180));
+        camera::velx = max(-1.0, camera::velx - sin(camera::phi*M_PI/180));
 	}
-	if (c == 'q') {
-		camera::velx = max(-1.0f, camera::velx - 1.0f);
+    if (c == 'Q' ||c == 'q') {//a
+        camera::vely = max(-1.0, camera::vely - sin(camera::phi*M_PI/180));
+        camera::velx = max(-1.0, camera::velx - cos(camera::phi*M_PI/180));
 	}
-	if (c == 'd') {
-		camera::velx = min(1.0f, camera::velx + 1.0f);
+    if (c == 'D' ||c == 'd') {
+        camera::vely = min(1.0, camera::vely + sin(camera::phi*M_PI/180));
+        camera::velx = min(1.0, camera::velx + cos(camera::phi*M_PI/180));
 	}
-	if (c == 'e') {
+    if (c == 'E' ||c == 'e') {
 		camera::velz = max(-1.0f, camera::velz - 1.0f);
 	}
-	if (c == 'a') {
+    if (c == 'A' ||c == 'a') {//q
 		camera::velz = min(1.0f, camera::velz + 1.0f);
 	}
 }
 
 
 void keyboardUpFunc(unsigned char c, int x, int y) {
-	if (c == 'z') {
-		camera::vely = min(1.0f, camera::vely + 1.0f);
+    if (c == 'Z' || c == 'z') {//w
+        camera::vely = min(1.0, camera::vely + cos(camera::phi*M_PI/180));
+        camera::velx = max(-1.0, camera::velx - sin(camera::phi*M_PI/180));
 	}
-	if (c == 's') {
-		camera::vely = max(-1.0f, camera::vely - 1.0f);
+    if (c == 'S' ||c == 's') {
+        camera::vely = max(-1.0, camera::vely - cos(camera::phi*M_PI/180));
+        camera::velx = min(1.0, camera::velx + sin(camera::phi*M_PI/180));
 	}
-	if (c == 'q') {
-		camera::velx = min(1.0f, camera::velx + 1.0f);
+    if (c == 'Q' ||c == 'q') {//a
+        camera::vely = min(1.0, camera::vely + sin(camera::phi*M_PI/180));
+        camera::velx = min(1.0, camera::velx + cos(camera::phi*M_PI/180));
+    }
+    if (c == 'D' ||c == 'd') {
+        camera::vely = max(-1.0, camera::vely - sin(camera::phi*M_PI/180));
+        camera::velx = max(-1.0, camera::velx - cos(camera::phi*M_PI/180));
 	}
-	if (c == 'd') {
-		camera::velx = max(-1.0f, camera::velx - 1.0f);
-	}
-	if (c == 'e') {
+    if (c == 'E' ||c == 'e') {
 		camera::velz = min(1.0f, camera::velz + 1.0f);
 	}
-	if (c == 'a') {
+    if (c == 'A' ||c == 'a') {//q
 		camera::velz = max(-1.0f, camera::velz - 1.0f);
-	}
+    }
 }
 
 void specialKeyFunc(int c, int x, int y) {
 	if (c >= GLUT_KEY_F1 && c <= GLUT_KEY_F9)
 	{
 		load(c - GLUT_KEY_F1 + 1);
-	}
+    }
 	switch (c)
 	{
 	case GLUT_KEY_LEFT:
@@ -1515,7 +1521,13 @@ void specialKeyFunc(int c, int x, int y) {
 		break;
 	case GLUT_KEY_RIGHT:
 		camera::phi += 5.0;
-		break;
+        break;
+    case GLUT_KEY_DOWN:
+        camera::theta = min(camera::theta + 1.0f, 90.0f - 0.001f);
+        break;
+    case GLUT_KEY_UP:
+        camera::theta = max(camera::theta - 1.0f, -45.0f);
+        break;
 	}
 }
 
