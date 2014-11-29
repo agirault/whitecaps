@@ -198,6 +198,8 @@ const float PARTICLE_LIFE_ORDER = 2;
 const float gravity = 0.5;
 const float lifeLossStep = 0.02;
 
+bool keyboardFrench = true;
+
 #ifdef _BENCH
 std::ofstream gnuplot("perf.dat", std::ofstream::out);
 #endif //_BENCH
@@ -1452,6 +1454,9 @@ void keyboardFunc(unsigned char c, int x, int y) {
 	if(c == 27) {
 		::exit(0);
     }
+    if(c == 'K'|| c == 'k') {
+        keyboardFrench = !keyboardFrench;
+    }
     if(c == '0') {
         camera::vely = 0.0;
         camera::velx = 0.0;
@@ -1459,15 +1464,15 @@ void keyboardFunc(unsigned char c, int x, int y) {
 	if (c >= '1' && c <= '9') {
 		save(c - '0');
 	}
-    if (c == 'Z' || c == 'z') {//w
+    if ((keyboardFrench && (c == 'Z' || c == 'z')) ||(!keyboardFrench && (c == 'W' || c == 'w')) ) {
         camera::vely = max(-1.0, camera::vely - cos(camera::phi*M_PI/180));
         camera::velx = min(1.0, camera::velx + sin(camera::phi*M_PI/180));
 	}
     if (c == 'S' ||c == 's') {
         camera::vely = min(1.0, camera::vely + cos(camera::phi*M_PI/180));
         camera::velx = max(-1.0, camera::velx - sin(camera::phi*M_PI/180));
-	}
-    if (c == 'Q' ||c == 'q') {//a
+    }
+    if ((keyboardFrench && (c == 'Q' || c == 'q')) ||(!keyboardFrench && (c == 'A' || c == 'a')) ) {
         camera::vely = max(-1.0, camera::vely - sin(camera::phi*M_PI/180));
         camera::velx = max(-1.0, camera::velx - cos(camera::phi*M_PI/180));
 	}
@@ -1477,23 +1482,23 @@ void keyboardFunc(unsigned char c, int x, int y) {
 	}
     if (c == 'E' ||c == 'e') {
 		camera::velz = max(-1.0f, camera::velz - 1.0f);
-	}
-    if (c == 'A' ||c == 'a') {//q
+    }
+    if ((keyboardFrench && (c == 'A' || c == 'a')) ||(!keyboardFrench && (c == 'Q' || c == 'q')) ) {
 		camera::velz = min(1.0f, camera::velz + 1.0f);
 	}
 }
 
 
 void keyboardUpFunc(unsigned char c, int x, int y) {
-    if (c == 'Z' || c == 'z') {//w
+    if ((keyboardFrench && (c == 'Z' || c == 'z')) ||(!keyboardFrench && (c == 'W' || c == 'w')) ) {
         camera::vely = min(1.0, camera::vely + cos(camera::phi*M_PI/180));
         camera::velx = max(-1.0, camera::velx - sin(camera::phi*M_PI/180));
 	}
     if (c == 'S' ||c == 's') {
         camera::vely = max(-1.0, camera::vely - cos(camera::phi*M_PI/180));
         camera::velx = min(1.0, camera::velx + sin(camera::phi*M_PI/180));
-	}
-    if (c == 'Q' ||c == 'q') {//a
+    }
+    if ((keyboardFrench && (c == 'Q' || c == 'q')) ||(!keyboardFrench && (c == 'A' || c == 'a')) ) {
         camera::vely = min(1.0, camera::vely + sin(camera::phi*M_PI/180));
         camera::velx = min(1.0, camera::velx + cos(camera::phi*M_PI/180));
     }
@@ -1503,8 +1508,8 @@ void keyboardUpFunc(unsigned char c, int x, int y) {
 	}
     if (c == 'E' ||c == 'e') {
 		camera::velz = min(1.0f, camera::velz + 1.0f);
-	}
-    if (c == 'A' ||c == 'a') {//q
+    }
+    if ((keyboardFrench && (c == 'A' || c == 'a')) ||(!keyboardFrench && (c == 'Q' || c == 'q')) ) {
 		camera::velz = max(-1.0f, camera::velz - 1.0f);
     }
 }
