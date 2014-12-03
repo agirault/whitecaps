@@ -84,8 +84,7 @@ void main() {
     u = oceanPos(gl_Vertex);
 
 /* TEST ALEXIS
-    vec2 uv = vec2( u.x/gridSize.x , u.y/gridSize.y ) ; // should be between 0 and 1 to takr from texture
-    P = texture2D( oceanSurface, uv).rgb;
+    P = texture2D( oceanSurface, u / GRID_SIZES.x).rgb; //should be reading the world position of the waves
     gl_Position = worldToScreen * vec4(P, 1.0);
 /**/
 

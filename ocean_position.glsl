@@ -3,6 +3,7 @@
 
 #define LAYER_HEIGHT		0.0
 
+uniform mat4 worldToScreen; // screen space to camera space
 uniform mat4 screenToCamera; // screen space to camera space
 uniform mat4 cameraToWorld; // camera space to world space
 uniform mat4 worldToCamera; // world space to camera space
@@ -35,8 +36,8 @@ void main()
     ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
 
-    vec2 uv = vec2( u.x/gridSize.x , u.y/gridSize.y ) ; // should be between 0 and 1 to project on texture
-    gl_Position = vec4(uv, 0.0, 1.0);
+    vec2 uv = (u*2.0/GRID_SIZES.x)-1.0;             //writing needs to go between -1 and 1 (framebuffer like screen)
+    gl_Position = vec4(u/GRID_SIZES.x, 0.0, 1.0);
 }
 
 #endif
