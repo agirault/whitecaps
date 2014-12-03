@@ -191,7 +191,7 @@ float jacobian_scale = 0.2f;
 //particles
 bool pingpong = true;
 const int PARTICLES_NUMBER = 800;
-const float PARTICLES_SIZE = 100000;
+const float PARTICLES_SIZE = 100000; // small size = 1000
 const float PARTICLE_POS_ORDER = 100;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 2;
@@ -1457,6 +1457,17 @@ void keyboardFunc(unsigned char c, int x, int y) {
 	if (c >= '1' && c <= '9') {
 		save(c - '0');
     }
+    if (c == ' ') {
+        animate=!animate;
+    }
+    if (c == '-') {
+        speed -= 0.025;
+        if(speed < -2.0) speed = -2.0;
+    }
+    if (c == '+') {
+        speed += 0.025;
+        if(speed > 2.0) speed = 2.0;
+    }
     if((c == 'K'|| c == 'k') || (keyboardFrench && (c == 'W' || c == 'w')) || (!keyboardFrench && (c == 'Z' || c == 'z'))) {
         keyboardFrench = !keyboardFrench;
     }
@@ -1481,7 +1492,7 @@ void keyboardFunc(unsigned char c, int x, int y) {
     }
     if ((keyboardFrench && (c == 'A' || c == 'a')) ||(!keyboardFrench && (c == 'Q' || c == 'q')) ) {
 		camera::velz = min(1.0f, camera::velz + 1.0f);
-	}
+    }
 }
 
 
@@ -1497,7 +1508,7 @@ void specialKeyFunc(int c, int x, int y) {
 		load(c - GLUT_KEY_F1 + 1);
     }
 	switch (c)
-	{
+    {
 	case GLUT_KEY_LEFT:
 		camera::phi -= 5.0;
 		break;
@@ -1621,7 +1632,7 @@ int main(int argc, char* argv[]) {
 	TwAddVarCB(tw::bar, "Clouds", TW_TYPE_BOOL8, setBool, getBool, &cloudLayer, "true=ON false=OFF group=Lighting");
 
 	TwAddVarRW(tw::bar, "Time", TW_TYPE_BOOLCPP, &animate, "true=RUNNING false=PAUSED group=Animation ");
-	TwAddVarRW(tw::bar, "Speed", TW_TYPE_FLOAT, &speed, "min=-2.000 max=2.000 step=0.025 group=Animation");
+    TwAddVarRW(tw::bar, "Speed", TW_TYPE_FLOAT, &speed, "min=-2.000 max=2.000 step=0.025 group=Animation");
 
 	TwAddVarRW(tw::bar, "Sea color", TW_TYPE_COLOR4F, &seaColor, "group=Waves");
 	TwAddVarCB(tw::bar, "Wind speed", TW_TYPE_FLOAT, setFloat, getFloat, &WIND, "min=1.0 max=30.0 step=1.0 group=Waves");
