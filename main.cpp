@@ -43,11 +43,13 @@ enum {
 	TEXTURE_BUTTERFLY,
     TEXTURE_GAUSSZ,
     TEXTURE_OCEAN_POSITION, /* TEST ALEXIS */
-    TEXTURE_PART_POSITION_PING, /* TEST ALEXIS */
-    TEXTURE_PART_POSITION_PONG, /* TEST ALEXIS */
-    TEXTURE_PART_VELOCITY_PING, /* TEST ALEXIS */
-    TEXTURE_PART_VELOCITY_PONG, /* TEST ALEXIS */
-    TEXTURE_PART_LIFETIME, /* TEST ALEXIS */
+    TEXTURE_PART_POSITION_PING,
+    TEXTURE_PART_POSITION_PONG,
+    TEXTURE_PART_POSITION_NEW,
+    TEXTURE_PART_VELOCITY_PING,
+    TEXTURE_PART_VELOCITY_PONG,
+    TEXTURE_PART_VELOCITY_NEW,
+    TEXTURE_PART_LIFETIME, /**/
 	TEXTURE_COUNT,
 
 	// buffers
@@ -67,8 +69,8 @@ enum {
     FRAMEBUFFER_VARIANCES,
     FRAMEBUFFER_GAUSS,
     FRAMEBUFFER_PARTICLES_PING, /* TEST ALEXIS */
-    FRAMEBUFFER_PARTICLES_PONG, /* TEST ALEXIS */
-    FRAMEBUFFER_OCEAN_POSITION, /* TEST ALEXIS */
+    FRAMEBUFFER_PARTICLES_PONG,
+    FRAMEBUFFER_OCEAN_POSITION, /**/
 	FRAMEBUFFER_COUNT,
 
 	// programs
@@ -81,9 +83,9 @@ enum {
 	PROGRAM_VARIANCES,
 	PROGRAM_FFTX,
 	PROGRAM_FFTY,
-	PROGRAM_WHITECAP_PRECOMPUTE,
+    PROGRAM_WHITECAP_PRECOMPUTE,
     PROGRAM_UPDATE_PARTICLES, /* TEST ALEXIS */
-    PROGRAM_RENDER_PARTICLES, /* TEST ALEXIS */
+    PROGRAM_RENDER_PARTICLES,
     PROGRAM_OCEAN_POSITION, /* TEST ALEXIS */
     PROGRAM_COUNT
 };
@@ -190,11 +192,11 @@ float jacobian_scale = 0.2f;
 /* TEST ALEXIS */
 //particles
 bool pingpong = true;
-const int PARTICLES_NUMBER = 800;
+const int PARTICLES_NUMBER = 8000;
 const float PARTICLES_SIZE = 100000; // small size = 1000
 const float PARTICLE_POS_ORDER = 100;
 const float PARTICLE_VEL_ORDER = 10;
-const float PARTICLE_LIFE_ORDER = 2;
+const float PARTICLE_LIFE_ORDER = 1;
 const float gravity = 0.5;
 const float lifeLossStep = 0.02;
 
@@ -1257,29 +1259,30 @@ void redisplayFunc() {
 		glGenerateMipmapEXT(GL_TEXTURE_2D_ARRAY_EXT);
 
 /* TEST ALEXIS */
-/*    // ocean position
+    // ocean position
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
     glViewport(0, 0, FFT_SIZE, FFT_SIZE);
     glUseProgram(programs[PROGRAM_OCEAN_POSITION]->program);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToCamera"), 1, true, view.coefficients());
-    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "choppy"), choppy);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
-    glUniform2f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "worldToScreen"), 1, true, (proj * view).coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "worldToCamera"), 1, true, view.coefficients());
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "choppy"), choppy);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
+    glUniform2f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
 
     glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_GRID_VERTEX]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[BUFFER_GRID_INDEX]);
     glVertexPointer(4, GL_FLOAT, 4*sizeof(float), 0);
     glEnableClientState(GL_VERTEX_ARRAY);
-    drawQuad();
+    glDrawElements(GL_TRIANGLES, vboSize, GL_UNSIGNED_INT, 0);
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-*/
+
     //Velocity
     if(animate && speed != 0.0 )
     {
@@ -1298,10 +1301,11 @@ void redisplayFunc() {
             glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
         }
         glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewPosition"), TEXTURE_PART_POSITION_NEW);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewVelocity"), TEXTURE_PART_VELOCITY_NEW);
         glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
         glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
         glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
-
         drawQuad();
     } else pingpong = !pingpong;
 /* FIN TEST */
@@ -1842,6 +1846,11 @@ int main(int argc, char* argv[]) {
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION_NEW);
+        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_NEW]);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
     delete[] data;
 
     // particles velocity
@@ -1854,6 +1863,11 @@ int main(int argc, char* argv[]) {
         glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_PONG);
         glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PONG]);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_NEW);
+        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
