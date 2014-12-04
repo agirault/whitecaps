@@ -70,6 +70,7 @@ enum {
     FRAMEBUFFER_GAUSS,
     FRAMEBUFFER_PARTICLES_PING, /* TEST ALEXIS */
     FRAMEBUFFER_PARTICLES_PONG,
+    FRAMEBUFFER_PARTICLES_NEW,
     FRAMEBUFFER_OCEAN_POSITION, /**/
 	FRAMEBUFFER_COUNT,
 
@@ -86,6 +87,7 @@ enum {
     PROGRAM_WHITECAP_PRECOMPUTE,
     PROGRAM_UPDATE_PARTICLES, /* TEST ALEXIS */
     PROGRAM_RENDER_PARTICLES,
+    PROGRAM_MOVE_PARTICLES,
     PROGRAM_OCEAN_POSITION, /* TEST ALEXIS */
     PROGRAM_COUNT
 };
@@ -192,13 +194,18 @@ float jacobian_scale = 0.2f;
 /* TEST ALEXIS */
 //particles
 bool pingpong = true;
-const int PARTICLES_NUMBER = 8000;
+const int PARTICLES_NUMBER = 5000;
 const float PARTICLES_SIZE = 100000; // small size = 1000
-const float PARTICLE_POS_ORDER = 100;
+const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 1;
 const float gravity = 0.5;
 const float lifeLossStep = 0.02;
+
+float MOVE_X = 0.0;
+float MOVE_Y = 0.0;
+float MOVE_Z = 0.0;
+float MOVE_S = 0.0;
 
 bool keyboardFrench = true;
 
@@ -346,17 +353,43 @@ void drawParticles(const mat4f &proj, const mat4f &view)
         glVertex2f(test, 0);
     }
     glEnd();
+}
 
-/*
-    //Test avec buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_PART_VERTEX]);
-    glVertexPointer(1, GL_FLOAT, sizeof(float), 0); // ici aussi bizarre 1er paramètre
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDrawArrays(GL_POINTS, 0, PARTICLES_NUMBER); //les paramètres ne fonctionnent pas?
-    glPointSize( 10.0 );
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-*/
+void updateParticles()
+{
+    if(pingpong)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
+    else
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
+    glViewport(0, 0, PARTICLES_NUMBER, 1);
+    glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
+    if(pingpong){
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PONG);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PONG);
+    }else{
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PING);
+        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
+    }
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewPosition"), TEXTURE_PART_POSITION_NEW);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewVelocity"), TEXTURE_PART_VELOCITY_NEW);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
+    drawQuad();
+}
+
+void moveParticles(float x, float y, float z, float speed)
+{
+    cout<<"test("<<x<<","<<y<<","<<z<<","<<speed<<")"<<endl;
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_NEW]);
+    glViewport(0, 0, PARTICLES_NUMBER, 1);
+    glUseProgram(programs[PROGRAM_MOVE_PARTICLES]->program);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_MOVE_PARTICLES]->program, "pointsNewPosition"), TEXTURE_PART_POSITION_NEW);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_MOVE_PARTICLES]->program, "pointsNewVelocity"), TEXTURE_PART_VELOCITY_NEW);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_MOVE_PARTICLES]->program, "displacement"), x,y,z);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_MOVE_PARTICLES]->program, "speed"), speed);
+    drawQuad();
 }
 
 // ----------------------------------------------------------------------------
@@ -516,6 +549,14 @@ void loadPrograms(bool all)
         programs[PROGRAM_RENDER_PARTICLES] = NULL;
     }
     programs[PROGRAM_RENDER_PARTICLES] = new Program(1, files);
+
+    files[0] = "particles_move.glsl";
+    if (programs[PROGRAM_MOVE_PARTICLES] != NULL)
+    {
+        delete programs[PROGRAM_MOVE_PARTICLES];
+        programs[PROGRAM_MOVE_PARTICLES] = NULL;
+    }
+    programs[PROGRAM_MOVE_PARTICLES] = new Program(1, files);
 
     files[0] = "ocean_position.glsl";
     if (programs[PROGRAM_OCEAN_POSITION] != NULL)
@@ -850,7 +891,7 @@ float *computeButterflyLookupTexture()
 	return data;
 }
 
-float randf() //rand between -1 and 1
+float randf() //rand between 0 and 1
 {
     float randf = (float)(rand());
     return (randf/RAND_MAX);
@@ -873,7 +914,7 @@ float * computeInitialVelocities(int size,float rangeScale)
     for(int i=0; i < size; i++)
     {
         if((i+1)%3 == 0) data[i] = rangeScale;
-        else data[i] = randf()*rangeScale;
+        else data[i] = (0.5*randf())*rangeScale;
     }
     return data;
 }
@@ -1283,31 +1324,13 @@ void redisplayFunc() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    //Velocity
+    //Update particles
     if(animate && speed != 0.0 )
     {
-        // particles update
-        if(pingpong)
-            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
-        else
-            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
-        glViewport(0, 0, PARTICLES_NUMBER, 1);
-        glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
-        if(pingpong){
-            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PONG);
-            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PONG);
-        }else{
-            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PING);
-            glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
-        }
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewPosition"), TEXTURE_PART_POSITION_NEW);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewVelocity"), TEXTURE_PART_VELOCITY_NEW);
-        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
-        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
-        glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
-        drawQuad();
-    } else pingpong = !pingpong;
+        updateParticles();
+        //moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
+    }
+    else pingpong = !pingpong;
 /* FIN TEST */
 
 	// filtering
@@ -1453,24 +1476,39 @@ void reshapeFunc(int x, int y) {
 void keyboardFunc(unsigned char c, int x, int y) {
 	if (TwEventKeyboardGLUT(c, x, y)) {
 		return;
-	}
-
+    }
 	if(c == 27) {
 		::exit(0);
     }
-	if (c >= '1' && c <= '9') {
-		save(c - '0');
-    }
+//	if (c >= '1' && c <= '9') {
+//		save(c - '0');
+//    }
     if (c == ' ') {
         animate=!animate;
     }
+    if (c == '8') {
+        --MOVE_Y;
+    }
+    if (c == '5') {
+        ++MOVE_Y;
+    }
+    if (c == '4') {
+        --MOVE_X;
+    }
+    if (c == '6') {
+        ++MOVE_X;
+    }
+    if (c == '7') {
+        ++MOVE_Z;
+    }
+    if (c == '9') {
+        --MOVE_Z;
+    }
     if (c == '-') {
-        speed -= 0.025;
-        if(speed < -2.0) speed = -2.0;
+        --MOVE_S;
     }
     if (c == '+') {
-        speed += 0.025;
-        if(speed > 2.0) speed = 2.0;
+        ++MOVE_S;
     }
     if((c == 'K'|| c == 'k') || (keyboardFrench && (c == 'W' || c == 'w')) || (!keyboardFrench && (c == 'Z' || c == 'z'))) {
         keyboardFrench = !keyboardFrench;
@@ -1946,6 +1984,11 @@ int main(int argc, char* argv[]) {
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PONG], 0);
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PONG], 0);
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT2_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME], 0);
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_NEW]);
+        glDrawBuffers(2, drawBuffers);
+        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_NEW], 0);
+        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
         glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
