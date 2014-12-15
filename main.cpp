@@ -381,7 +381,6 @@ void updateParticles()
 
 void moveParticles(float x, float y, float z, float speed)
 {
-    cout<<"test("<<x<<","<<y<<","<<z<<","<<speed<<")"<<endl;
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_NEW]);
     glViewport(0, 0, PARTICLES_NUMBER, 1);
     glUseProgram(programs[PROGRAM_MOVE_PARTICLES]->program);
@@ -1327,8 +1326,8 @@ void redisplayFunc() {
     //Update particles
     if(animate && speed != 0.0 )
     {
+        moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
         updateParticles();
-        //moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
     }
     else pingpong = !pingpong;
 /* FIN TEST */
@@ -1467,8 +1466,8 @@ void redisplayFunc() {
 
 
 void reshapeFunc(int x, int y) {
-//	window::width = x;
-//	window::height = y;
+//    window::width = x;
+//    window::height = y;
 	TwWindowSize(x, y);
 	glutPostRedisplay();
 }
@@ -1487,22 +1486,22 @@ void keyboardFunc(unsigned char c, int x, int y) {
         animate=!animate;
     }
     if (c == '8') {
-        --MOVE_Y;
+        MOVE_Y += 5;
     }
     if (c == '5') {
-        ++MOVE_Y;
+        MOVE_Y -= 5;
     }
     if (c == '4') {
-        --MOVE_X;
+        MOVE_X -= 5;
     }
     if (c == '6') {
-        ++MOVE_X;
+        MOVE_X += 5;
     }
     if (c == '7') {
-        ++MOVE_Z;
+        MOVE_Z += 5;
     }
     if (c == '9') {
-        --MOVE_Z;
+        MOVE_Z -= 5;
     }
     if (c == '-') {
         --MOVE_S;
@@ -1542,6 +1541,10 @@ void keyboardUpFunc(unsigned char c, int x, int y) {
         camera::vely = 0.0;
         camera::velx = 0.0;
         camera::velz = 0.0;
+        MOVE_X = 0.0;
+        MOVE_Y = 0.0;
+        MOVE_Z = 0.0;
+        MOVE_S = 0.0;
 }
 
 void specialKeyFunc(int c, int x, int y) {
@@ -1988,7 +1991,7 @@ int main(int argc, char* argv[]) {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_NEW]);
         glDrawBuffers(2, drawBuffers);
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_NEW], 0);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW], 0);
+        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
         glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
