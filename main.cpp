@@ -102,8 +102,9 @@ Program*    programs[PROGRAM_COUNT];
 namespace {
 // Window Variables
 namespace window {
-const int width   = 600+220;
-const int height  = 600;
+int width   = 600+220;
+int height  = 600;
+bool fullscreen = false;
 } // namespace window
 
 // TW
@@ -195,8 +196,8 @@ float jacobian_scale = 0.2f;
 //particles
 bool pingpong = true;
 const int PARTICLES_NUMBER = 5000;
-const float PARTICLES_SIZE = 1000; // small size = 1000
-const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
+const float PARTICLES_SIZE = 1000;
+const float PARTICLES_COLOR[3] = {1.0, 1.0, 1.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 1;
@@ -1473,8 +1474,8 @@ void redisplayFunc() {
 
 
 void reshapeFunc(int x, int y) {
-//    window::width = x;
-//    window::height = y;
+    window::width = x;
+    window::height = y;
 	TwWindowSize(x, y);
 	glutPostRedisplay();
 }
@@ -1485,6 +1486,11 @@ void keyboardFunc(unsigned char c, int x, int y) {
     }
 	if(c == 27) {
 		::exit(0);
+    }
+    if (c == 'F' || c == 'f') {
+        if(!window::fullscreen) glutFullScreen();
+        else glutReshapeWindow(600+220,600);
+        window::fullscreen = !window::fullscreen;
     }
 //	if (c >= '1' && c <= '9') {
 //		save(c - '0');
