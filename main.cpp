@@ -196,6 +196,7 @@ float jacobian_scale = 0.2f;
 bool pingpong = true;
 const int PARTICLES_NUMBER = 5000;
 const float PARTICLES_SIZE = 1000; // small size = 1000
+const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 1;
@@ -334,6 +335,9 @@ void drawClouds(const vec4f &sun, const mat4f &mat)
     /* TEST ALEXIS */
 void drawParticles(const mat4f &proj, const mat4f &view)
 {
+    glEnable(GL_BLEND);
+    glDepthMask(GL_FALSE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(programs[PROGRAM_RENDER_PARTICLES]->program);
     if(pingpong)
         glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PING);
@@ -343,6 +347,7 @@ void drawParticles(const mat4f &proj, const mat4f &view)
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, (proj*view).coefficients());
     glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "spriteSize"), PARTICLES_SIZE);
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsColor"),  PARTICLES_COLOR[0], PARTICLES_COLOR[1], PARTICLES_COLOR[2]);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SMOOTH);
@@ -353,6 +358,8 @@ void drawParticles(const mat4f &proj, const mat4f &view)
         glVertex2f(test, 0);
     }
     glEnd();
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
 }
 
 void updateParticles()
