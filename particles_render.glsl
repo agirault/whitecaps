@@ -23,7 +23,7 @@ void main() {
 
     vec3 dist = worldCamera-P;
     float distnorm2 = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
-    gl_PointSize = (spriteSize)/distnorm2;
+    gl_PointSize = (spriteSize)/sqrt(distnorm2);
 
     gl_Position = worldToScreen * vec4(P, 1.0);
 }

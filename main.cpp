@@ -195,7 +195,7 @@ float jacobian_scale = 0.2f;
 //particles
 bool pingpong = true;
 const int PARTICLES_NUMBER = 5000;
-const float PARTICLES_SIZE = 100000; // small size = 1000
+const float PARTICLES_SIZE = 1000; // small size = 1000
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 1;
