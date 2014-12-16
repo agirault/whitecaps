@@ -193,6 +193,7 @@ float jacobian_scale = 0.2f;
 
 /* TEST ALEXIS */
 //particles
+bool renderParticles = true;
 const int PARTICLES_NUMBER = 5000;
 const float PARTICLES_SIZE = 1000;
 const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
@@ -1414,7 +1415,6 @@ void redisplayFunc() {
 		drawClouds(sun, proj * view);
 	}
 
-    drawParticles(proj,view);
 
     // render atmosphere (after scene -> use early Z !!)
     glUseProgram(programs[PROGRAM_RENDER_SKY]->program);
@@ -1430,8 +1430,8 @@ void redisplayFunc() {
 	glVertex2f(1, 1);
 	glEnd();
 
-	if (cloudLayer)
-		drawClouds(sun, proj * view);
+    if (cloudLayer)	drawClouds(sun, proj * view);
+    if(renderParticles) drawParticles(proj,view);
 
 	glUseProgram(0);
 #ifdef _BENCH
@@ -1479,6 +1479,9 @@ void keyboardFunc(unsigned char c, int x, int y) {
 //	if (c >= '1' && c <= '9') {
 //		save(c - '0');
 //    }
+    if (c == 'P' || c == 'p') {
+        renderParticles=!renderParticles;
+    }
     if (c == ' ') {
         animate=!animate;
     }
@@ -1916,17 +1919,17 @@ int main(int argc, char* argv[]) {
         glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_U]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F,FFT_SIZE, FFT_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_UX);
         glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UX]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F,FFT_SIZE, FFT_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
     glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_UY);
         glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UY]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F,FFT_SIZE, FFT_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
 
 /**/
     generateWavesSpectrum(); // initial data pour TEXTURE_SPECTRUM12 et TEXTURE_SPECTRUM34
