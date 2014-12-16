@@ -59,7 +59,9 @@ uniform vec4 choppy_factor;
 uniform float jacobian_scale;
 
 uniform sampler2DArray fftWavesSampler;	// ocean surface
-uniform sampler2D oceanSurface;	// ocean surface already sampled
+uniform sampler2D oceanSurfaceU;	// ocean surface already sampled
+uniform sampler2D oceanSurfaceUX;	// ocean surface already sampled
+uniform sampler2D oceanSurfaceUY;	// ocean surface already sampled
 uniform sampler2DArray foamDistribution;
 
 uniform vec4 GRID_SIZES;
@@ -81,15 +83,18 @@ vec2 oceanPos(vec4 vertex) {
 }
 
 void main() {
+
+    //-- TEXTURE computation
+    // writing from textures. gl_Vertex.xy might not be good coordinates
+//    u = texture2D( oceanSurfaceU, gl_Vertex.xy).xy;
+//    vec2 ux = texture2D( oceanSurfaceUX, gl_Vertex.xy).xy;
+//    vec2 uy = texture2D( oceanSurfaceUY, gl_Vertex.xy).xy;
+
+    //-- NORMAL computation
     u = oceanPos(gl_Vertex);
-
-/* TEST ALEXIS
-    P = texture2D( oceanSurface, u / GRID_SIZES.x).rgb; //should be reading the world position of the waves
-    gl_Position = worldToScreen * vec4(P, 1.0);
-/**/
-
     vec2 ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     vec2 uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
+
     vec2 dux = ux - u;
     vec2 duy = uy - u;
 

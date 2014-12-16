@@ -3,18 +3,11 @@
 
 #define LAYER_HEIGHT		0.0
 
-uniform mat4 worldToScreen; // screen space to camera space
 uniform mat4 screenToCamera; // screen space to camera space
 uniform mat4 cameraToWorld; // camera space to world space
-uniform mat4 worldToCamera; // world space to camera space
 uniform vec3 worldCamera; // camera position in world space
 
 uniform vec2 gridSize;
-uniform float choppy;
-uniform vec4 choppy_factor;
-
-uniform sampler2DArray fftWavesSampler;	// ocean surface
-
 uniform vec4 GRID_SIZES;
 
 varying vec2 u;
@@ -36,8 +29,7 @@ void main()
     ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
 
-    vec2 uv = (u*2.0/GRID_SIZES.x)-1.0;             //writing needs to go between -1 and 1 (framebuffer like screen)
-    gl_Position = vec4(u/GRID_SIZES.x, 0.0, 1.0);
+    gl_Position = gl_Vertex; // writing in texture. gl_Vertex might not be good coordinates
 }
 
 #endif
@@ -45,27 +37,9 @@ void main()
 #ifdef _FRAGMENT_
 void main()
 {
-    vec2 dux = ux - u;
-    vec2 duy = uy - u;
-
-    // sum altitudes (use grad to get correct mipmap level)
-    vec3 dP = vec3(0.0);
-    dP.z += texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.x, LAYER_HEIGHT), dux / GRID_SIZES.x, duy / GRID_SIZES.x).x;
-    dP.z += texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.y, LAYER_HEIGHT), dux / GRID_SIZES.y, duy / GRID_SIZES.y).y;
-    dP.z += texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.z, LAYER_HEIGHT), dux / GRID_SIZES.z, duy / GRID_SIZES.z).z;
-    dP.z += texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.w, LAYER_HEIGHT), dux / GRID_SIZES.w, duy / GRID_SIZES.w).w;
-
-    // choppy
-    if (choppy > 0.0) {
-
-        dP.xy += choppy_factor.x*texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.x, 3.0), dux / GRID_SIZES.x, duy / GRID_SIZES.x).xy;
-        dP.xy += choppy_factor.y*texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.y, 3.0), dux / GRID_SIZES.y, duy / GRID_SIZES.y).zw;
-        dP.xy += choppy_factor.z*texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.z, 4.0), dux / GRID_SIZES.z, duy / GRID_SIZES.z).xy;
-        dP.xy += choppy_factor.w*texture2DArrayGrad(fftWavesSampler, vec3(u / GRID_SIZES.w, 4.0), dux / GRID_SIZES.w, duy / GRID_SIZES.w).zw;
-    }
-    vec3 P = vec3(u + dP.xy, dP.z);
-
-    gl_FragData[0] = vec4(P,1.0);
+    gl_FragData[0] = vec4(u,0.0,1.0);
+    gl_FragData[1] = vec4(ux,0.0,1.0);
+    gl_FragData[2] = vec4(uy,0.0,1.0);
 }
 
 #endif
