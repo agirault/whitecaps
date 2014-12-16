@@ -198,10 +198,10 @@ const int PARTICLES_NUMBER = 5000;
 const float PARTICLES_SIZE = 1000;
 const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
 const float PARTICLE_POS_ORDER = 25;
-const float PARTICLE_VEL_ORDER = 10;
+const float PARTICLE_VEL_ORDER = 4;
 const float PARTICLE_LIFE_ORDER = 1;
-const float gravity = 0.5;
-const float lifeLossStep = 0.02;
+const float gravity = 0.05;
+const float lifeLossStep = 0.005;
 
 float MOVE_X = 0.0;
 float MOVE_Y = 0.0;
@@ -1504,10 +1504,10 @@ void keyboardFunc(unsigned char c, int x, int y) {
         MOVE_Z -= 5;
     }
     if (c == '-') {
-        --MOVE_S;
+        MOVE_S -= 0.1;
     }
     if (c == '+') {
-        ++MOVE_S;
+        MOVE_S += 0.1;
     }
     if((c == 'K'|| c == 'k') || (keyboardFrench && (c == 'W' || c == 'w')) || (!keyboardFrench && (c == 'Z' || c == 'z'))) {
         keyboardFrench = !keyboardFrench;
