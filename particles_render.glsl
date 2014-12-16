@@ -12,7 +12,7 @@ varying float u;
 
 #ifdef _VERTEX_
 void main() {
-    u = gl_Vertex.y;
+    u = gl_Vertex.x;
     vec3 P = texture1D(pointsPosition, u).rgb;
 
     vec3 dist = worldCamera-P;
