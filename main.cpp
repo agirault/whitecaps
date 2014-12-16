@@ -43,11 +43,9 @@ enum {
 	TEXTURE_BUTTERFLY,
     TEXTURE_GAUSSZ,
     TEXTURE_OCEAN_POSITION, /* TEST ALEXIS */
-    TEXTURE_PART_POSITION_PING,
-    TEXTURE_PART_POSITION_PONG,
+    TEXTURE_PART_POSITION,
     TEXTURE_PART_POSITION_NEW,
-    TEXTURE_PART_VELOCITY_PING,
-    TEXTURE_PART_VELOCITY_PONG,
+    TEXTURE_PART_VELOCITY,
     TEXTURE_PART_VELOCITY_NEW,
     TEXTURE_PART_LIFETIME, /**/
 	TEXTURE_COUNT,
@@ -68,8 +66,7 @@ enum {
 	FRAMEBUFFER_SKY,
     FRAMEBUFFER_VARIANCES,
     FRAMEBUFFER_GAUSS,
-    FRAMEBUFFER_PARTICLES_PING, /* TEST ALEXIS */
-    FRAMEBUFFER_PARTICLES_PONG,
+    FRAMEBUFFER_PARTICLES, /* TEST ALEXIS */
     FRAMEBUFFER_PARTICLES_NEW,
     FRAMEBUFFER_OCEAN_POSITION, /**/
 	FRAMEBUFFER_COUNT,
@@ -194,10 +191,9 @@ float jacobian_scale = 0.2f;
 
 /* TEST ALEXIS */
 //particles
-bool pingpong = true;
 const int PARTICLES_NUMBER = 5000;
 const float PARTICLES_SIZE = 1000;
-const float PARTICLES_COLOR[3] = {1.0, 1.0, 1.0};
+const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 10;
 const float PARTICLE_LIFE_ORDER = 1;
@@ -340,10 +336,7 @@ void drawParticles(const mat4f &proj, const mat4f &view)
     glDepthMask(GL_FALSE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(programs[PROGRAM_RENDER_PARTICLES]->program);
-    if(pingpong)
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PING);
-    else
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION_PONG);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsPosition"), TEXTURE_PART_POSITION);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldToScreen"), 1, true, (proj*view).coefficients());
     glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_PARTICLES]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
@@ -365,19 +358,12 @@ void drawParticles(const mat4f &proj, const mat4f &view)
 
 void updateParticles()
 {
-    if(pingpong)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
-    else
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
     glViewport(0, 0, PARTICLES_NUMBER, 1);
     glUseProgram(programs[PROGRAM_UPDATE_PARTICLES]->program);
-    if(pingpong){
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PONG);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PONG);
-    }else{
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION_PING);
-        glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY_PING);
-    }
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldPosition"), TEXTURE_PART_POSITION);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsOldVelocity"), TEXTURE_PART_VELOCITY);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsLifetime"), TEXTURE_PART_LIFETIME);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewPosition"), TEXTURE_PART_POSITION_NEW);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "pointsNewVelocity"), TEXTURE_PART_VELOCITY_NEW);
@@ -1225,7 +1211,6 @@ double time()
 
 
 void redisplayFunc() {
-    pingpong = !pingpong;       //allow pingpong algorithm
 	static double t0 = time();
 	static double t1 = time();
 
@@ -1337,7 +1322,6 @@ void redisplayFunc() {
         moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
         updateParticles();
     }
-    else pingpong = !pingpong;
 /* FIN TEST */
 
 	// filtering
@@ -1890,13 +1874,8 @@ int main(int argc, char* argv[]) {
     //particles position
     data = computeInitialPositions(PARTICLES_NUMBER*3,PARTICLE_POS_ORDER);
     //displayValues(data,PARTICLES_NUMBER*3);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION_PING);
-        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PING]);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION_PONG);
-        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PONG]);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_POSITION);
+        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
@@ -1910,13 +1889,8 @@ int main(int argc, char* argv[]) {
     // particles velocity
     data = computeInitialVelocities(PARTICLES_NUMBER*3,PARTICLE_VEL_ORDER);
     //displayValues(data,PARTICLES_NUMBER*3);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_PING);
-        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PING]);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY_PONG);
-        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PONG]);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_PART_VELOCITY);
+        glBindTexture(GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY]);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB32F, PARTICLES_NUMBER, 0, GL_RGB, GL_FLOAT, data);
@@ -1989,16 +1963,10 @@ int main(int argc, char* argv[]) {
 		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_SKY], 0);
 
 /* TEST ALEXIS */
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PING]);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
         glDrawBuffers(3, drawBuffers);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PING], 0);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PING], 0);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT2_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME], 0);
-
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_PONG]);
-        glDrawBuffers(3, drawBuffers);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION_PONG], 0);
-        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_PONG], 0);
+        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_POSITION], 0);
+        glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY], 0);
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT2_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_LIFETIME], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES_NEW]);
