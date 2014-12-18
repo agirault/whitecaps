@@ -198,13 +198,13 @@ float jacobian_scale = 0.2f;
 //particles
 bool renderParticles = true;
 const int PARTICLES_NUMBER = 10000;
-const float PARTICLES_SIZE = 200;
-const float PARTICLES_COLOR[3] = {1.0, 1.0, 1.0};
+const float PARTICLES_SIZE = 500;
+const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 4;
 const float PARTICLE_LIFE_ORDER = 1;
 const float gravity = 0.05;
-const float lifeLossStep = 0.005;
+const float lifeLossStep = 0.002;
 
 float MOVE_X = 0.0;
 float MOVE_Y = 0.0;
@@ -377,13 +377,7 @@ void updateParticles()
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION_U);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
-    glUniform2f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "normals"), normals);
-    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "choppy"), choppy);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceP"), TEXTURE_OCEAN_POSITION_P);
     drawQuad();
 }
 

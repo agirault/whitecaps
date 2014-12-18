@@ -21,19 +21,17 @@ uniform float gravity;
 uniform float lifeLossStep;
 uniform float dt;
 
-uniform sampler2D oceanSurface;	// ocean surface already sampled
-uniform sampler2DArray fftWavesSampler;	// ocean surface
-uniform vec4 GRID_SIZES;
-uniform vec2 gridSize;
-uniform float choppy;
-uniform vec4 choppy_factor;
+uniform sampler2D oceanSurfaceP;	// ocean surface already sampled
 
 void main()
 {
-
+    //Lifetime
     float lifetime = texture1D(pointsLifetime, u).r;
-    if(lifetime > 0.0)
+    lifetime -= lifeLossStep*dt;
+    if(lifetime > 0.0)  //-- make particle move and age
     {
+        gl_FragData[2] = vec4(lifetime,0.0,0.0,0.0);
+
         // Particle Position
         vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
         vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
@@ -41,13 +39,16 @@ void main()
         vec3 newPos = oldPos + oldVel*dt + grav*dt*dt;
 
         // Ocean Position
-        vec2 u = texture2D( oceanSurface, vec2(newPos.x, newPos.y)).xy; //vec3 P = texture2D( oceanSurface, vec2(newPos.x, newPos.y)).xyz;
+        // TODO : the way I sample the texture right now is wrong !
+        // I need to do u = oceanPos(gl_Vertex) "inverse" to find where to sample in oceanSurfaceU and oceanSurfaceP : gridPos(x,y)
+        // This is why right now the particles stay on the 0 height level and don't stick to the sea
+        vec3 dP = texture2D( oceanSurfaceP, vec2(newPos.x, newPos.y)).xyz;
 
         // Check State
-        if(newPos.z <= 0.0)                                             //(newPos.z <= P.z)
+        if(newPos.z <= dP.z)
         {
-            gl_FragData[0] = vec4(newPos.xy,0.0,1.0);                   //(newPos.xy,P.z,1.0)
-            gl_FragData[1] = vec4(vec3(0.0,0.0,0.0), 1.0);
+            gl_FragData[0] = vec4(newPos.xy + dP.xy,dP.z,1.0); //does not work because... see TODO above
+            gl_FragData[1] = vec4(grav, 1.0);
         }
         else
         {
@@ -56,24 +57,15 @@ void main()
             gl_FragData[1] = vec4(newVel, 1.0);
         }
 
-        //Lifetime
-        lifetime -= lifeLossStep*dt;
-        if(lifetime < 0.0) lifetime = 0.0;
-        if(lifetime > 1.0) lifetime = 1.0;
-
-        gl_FragData[2] = vec4(lifetime,0.0,0.0,0.0);
     }
-    else
+    else    //-- create new particle instead of dead one
     {
         vec3 newPos = texture1D(pointsNewPosition, u).rgb;
         vec3 newVel = texture1D(pointsNewVelocity, u).rgb;
         gl_FragData[0] = vec4(newPos, 1.0);
         gl_FragData[1] = vec4(newVel, 1.0);
-        gl_FragData[2] = vec4(1.0,0.0,0.0,0.0);
+        gl_FragData[2] = vec4(1.0, 0.0, 0.0, 1.0);
     }
-
-
-
 }
 
 #endif
