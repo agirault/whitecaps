@@ -14,12 +14,19 @@ void main() {
 
 uniform sampler1D pointsOldPosition;
 uniform sampler1D pointsOldVelocity;
+uniform sampler1D pointsLifetime;
 uniform sampler1D pointsNewPosition;
 uniform sampler1D pointsNewVelocity;
-uniform sampler1D pointsLifetime;
 uniform float gravity;
 uniform float lifeLossStep;
 uniform float dt;
+
+uniform sampler2D oceanSurface;	// ocean surface already sampled
+uniform sampler2DArray fftWavesSampler;	// ocean surface
+uniform vec4 GRID_SIZES;
+uniform vec2 gridSize;
+uniform float choppy;
+uniform vec4 choppy_factor;
 
 void main()
 {
@@ -27,15 +34,27 @@ void main()
     float lifetime = texture1D(pointsLifetime, u).r;
     if(lifetime > 0.0)
     {
-        //Position
+        // Particle Position
         vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
         vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
         vec3 grav = vec3(0.0,0.0,-gravity);
         vec3 newPos = oldPos + oldVel*dt + grav*dt*dt;
-        vec3 newVel = (newPos - oldPos)/dt;
 
-        gl_FragData[0] = vec4(newPos, 1.0);
-        gl_FragData[1] = vec4(newVel, 1.0);
+        // Ocean Position
+        vec2 u = texture2D( oceanSurface, vec2(newPos.x, newPos.y)).xy; //vec3 P = texture2D( oceanSurface, vec2(newPos.x, newPos.y)).xyz;
+
+        // Check State
+        if(newPos.z <= 0.0)                                             //(newPos.z <= P.z)
+        {
+            gl_FragData[0] = vec4(newPos.xy,0.0,1.0);                   //(newPos.xy,P.z,1.0)
+            gl_FragData[1] = vec4(vec3(0.0,0.0,0.0), 1.0);
+        }
+        else
+        {
+            vec3 newVel = (newPos - oldPos)/dt;
+            gl_FragData[0] = vec4(newPos, 1.0);
+            gl_FragData[1] = vec4(newVel, 1.0);
+        }
 
         //Lifetime
         lifetime -= lifeLossStep*dt;
