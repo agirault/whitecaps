@@ -53,15 +53,17 @@ uniform vec3 worldCamera; // camera position in world space
 uniform vec3 worldSunDir; // sun direction in world space
 
 uniform vec2 gridSize;
+uniform float gridXcenter;
+uniform float gridXhalflength;
+uniform float gridYcenter;
+uniform float gridYhalflength;
 uniform float normals;
 uniform float choppy;
 uniform vec4 choppy_factor;
 uniform float jacobian_scale;
 
+uniform sampler2D oceanSurface;	// ocean surface already sampled
 uniform sampler2DArray fftWavesSampler;	// ocean surface
-uniform sampler2D oceanSurfaceU;	// ocean surface already sampled
-uniform sampler2D oceanSurfaceUX;	// ocean surface already sampled
-uniform sampler2D oceanSurfaceUY;	// ocean surface already sampled
 uniform sampler2DArray foamDistribution;
 
 uniform vec4 GRID_SIZES;
@@ -85,13 +87,13 @@ vec2 oceanPos(vec4 vertex) {
 void main() {
 
     //-- TEXTURE computation
-    // writing from textures. gl_Vertex.xy might not be good coordinates
-//    u = texture2D( oceanSurfaceU, gl_Vertex.xy).xy;
-//    vec2 ux = texture2D( oceanSurfaceUX, gl_Vertex.xy).xy;
-//    vec2 uy = texture2D( oceanSurfaceUY, gl_Vertex.xy).xy;
+    // reading from textures, between 0 and 1
+    float x = (gl_Vertex.x - gridXcenter)/(2.0*gridXhalflength)+0.5;
+    float y = (gl_Vertex.y - gridYcenter)/(2.0*gridYhalflength)+0.5;
+    u = texture2D( oceanSurface, vec2(x,y)).xy;
 
     //-- NORMAL computation
-    u = oceanPos(gl_Vertex);
+    //u = oceanPos(gl_Vertex);
     vec2 ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     vec2 uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
 

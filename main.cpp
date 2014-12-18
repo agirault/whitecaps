@@ -42,9 +42,7 @@ enum {
 	TEXTURE_FFT_PONG,
 	TEXTURE_BUTTERFLY,
     TEXTURE_GAUSSZ,
-    TEXTURE_OCEAN_POSITION_U, /* TEST ALEXIS */
-    TEXTURE_OCEAN_POSITION_UX,
-    TEXTURE_OCEAN_POSITION_UY,
+    TEXTURE_OCEAN_POSITION, /* TEST ALEXIS */
     TEXTURE_PART_POSITION,
     TEXTURE_PART_VELOCITY,
     TEXTURE_PART_LIFETIME,
@@ -143,6 +141,10 @@ float cloudColor[4] = { 1.0, 1.0, 1.0, 1.0 };
 vec4f vboParams;
 int vboSize = 0;
 int vboVertices = 0;
+float gridXcenter = 0.0;
+float gridXhalflength = 0.0;
+float gridYcenter = 0.0;
+float gridYhalflength = 0.0;
 float sunTheta = 0.6*M_PI / 2.0 - 0.05;
 float sunPhi = 0.0;
 float gridSize = 4.0f;
@@ -194,9 +196,9 @@ float jacobian_scale = 0.2f;
 /* TEST ALEXIS */
 //particles
 bool renderParticles = true;
-const int PARTICLES_NUMBER = 5000;
-const float PARTICLES_SIZE = 1000;
-const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
+const int PARTICLES_NUMBER = 10000;
+const float PARTICLES_SIZE = 200;
+const float PARTICLES_COLOR[3] = {1.0, 1.0, 1.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 4;
 const float PARTICLE_LIFE_ORDER = 1;
@@ -373,6 +375,14 @@ void updateParticles()
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gravity"), gravity);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
+
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
+    glUniform2f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "normals"), normals);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "choppy"), choppy);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
     drawQuad();
 }
 
@@ -591,6 +601,15 @@ void generateMesh()
     float vmargin = 0.1;
     float hmargin = 0.1;
 
+    gridXcenter = 0.0;
+    gridXhalflength = 1.0+2.0*hmargin;
+    gridYcenter = -1.0 + s - vmargin*(1.0+(1.0/window::height));
+    gridYhalflength = abs(-s + vmargin*((1.0/window::height)-1.0));
+
+    //cout<<gridXcenter<<" "<<gridXhalflength<<" "<<gridYcenter<<" "<<gridYhalflength<<std::endl;
+    //cout<<gridXcenter-gridXhalflength<<" "<<gridXcenter+gridXhalflength<<std::endl;
+    //cout<<gridYcenter-gridYhalflength<<" "<<gridYcenter+gridYhalflength<<std::endl;
+
 //    vboParams = vec4f(window::width, window::height, gridSize, camera::theta);
     vec4f *data = new vec4f[int(ceil(window::height * (s + vmargin) / gridSize) + 5) * int(ceil(window::width * (1.0 + 2.0 * hmargin) / gridSize) + 5)];
 
@@ -598,15 +617,25 @@ void generateMesh()
 
     int n = 0;
     int nx = 0;
-    for (float j = window::height * s - 0.1/* - gridSize*/; j > -window::height * vmargin - gridSize; j -= gridSize)
+    for (float j = window::height * s - vmargin/* - gridSize*/; j > -window::height * vmargin - gridSize; j -= gridSize)
     {
         nx = 0;
         for (float i = -window::width * hmargin; i < window::width * (1.0 + hmargin) + gridSize; i += gridSize)
         {
             data[n++] = vec4f(-1.0 + 2.0 * i / window::width, -1.0 + 2.0 * j / window::height, 0.0, 1.0);
             nx++;
+            //float x = (data[n].x - gridXcenter)/gridXhalflength;
+            //float x = (data[n].x - gridXcenter)/(2.0*gridXhalflength)+0.5;
+            //cout<<x<<std::endl;
+            //cout<<data[n].x<<std::endl;
         }
+        //float y = (data[n].y - gridYcenter)/gridYhalflength;
+        //float y = (data[n].y - gridYcenter)/(2.0*gridYhalflength)+0.5;
+        //cout<<y<<std::endl;
+        //cout<<data[n].y<<std::endl;
     }
+
+
 	vboVertices = n;
     glBufferData(GL_ARRAY_BUFFER, n * 16, data, GL_STATIC_DRAW);
     delete[] data;
@@ -639,6 +668,7 @@ void generateMesh()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
 
 // ----------------------------------------------------------------------------
@@ -1299,12 +1329,19 @@ void redisplayFunc() {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
     glViewport(0, 0, FFT_SIZE, FFT_SIZE);
     glUseProgram(programs[PROGRAM_OCEAN_POSITION]->program);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
     glUniform3f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
-    glUniform4f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridXcenter"), gridXcenter);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridXhalflength"), gridXhalflength);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridYcenter"), gridYcenter);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridYhalflength"), gridYhalflength);
+
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "choppy"), choppy);
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "choppy_factor"),choppy_factor0,choppy_factor1,choppy_factor2,choppy_factor3);
     glUniform2f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
+    glUniform4f(glGetUniformLocation(programs[PROGRAM_OCEAN_POSITION]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
 
     glBindBuffer(GL_ARRAY_BUFFER, buffers[BUFFER_GRID_VERTEX]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[BUFFER_GRID_INDEX]);
@@ -1365,9 +1402,7 @@ void redisplayFunc() {
 
     glUseProgram(programs[PROGRAM_RENDER_OCEAN]->program);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceU"), TEXTURE_OCEAN_POSITION_U);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceUX"), TEXTURE_OCEAN_POSITION_UX);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceUY"), TEXTURE_OCEAN_POSITION_UY);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToCamera"), 1, true, view.coefficients());
@@ -1381,6 +1416,10 @@ void redisplayFunc() {
     glUniform3f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "seaColor"), seaColor[0] * seaColor[3], seaColor[1] * seaColor[3], seaColor[2] * seaColor[3]);
     glUniform4f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
     glUniform2f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridXcenter"), gridXcenter);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridXhalflength"), gridXhalflength);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridYcenter"), gridYcenter);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "gridYhalflength"), gridYhalflength);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "spectrum"), show_spectrum);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "normals"), normals);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "choppy"), choppy);
@@ -1915,21 +1954,13 @@ int main(int argc, char* argv[]) {
     delete[] data;
 
     // ocean position
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_U);
-        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_U]);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION);
+        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_UX);
-        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UX]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_UY);
-        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UY]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F,FFT_SIZE, FFT_SIZE, 0, GL_RG, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,FFT_SIZE, FFT_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
 
 /**/
     generateWavesSpectrum(); // initial data pour TEXTURE_SPECTRUM12 et TEXTURE_SPECTRUM34
@@ -1987,10 +2018,8 @@ int main(int argc, char* argv[]) {
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
-        glDrawBuffers(3, drawBuffers);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_U], 0);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UY], 0);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT2_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_UY], 0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION], 0);
 /**/
 	// back to default framebuffer
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
