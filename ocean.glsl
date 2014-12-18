@@ -62,7 +62,8 @@ uniform float choppy;
 uniform vec4 choppy_factor;
 uniform float jacobian_scale;
 
-uniform sampler2D oceanSurface;	// ocean surface already sampled
+uniform sampler2D oceanSurfaceU;	// ocean surface already sampled
+uniform sampler2D oceanSurfaceP;	// ocean surface already sampled
 uniform sampler2DArray fftWavesSampler;	// ocean surface
 uniform sampler2DArray foamDistribution;
 
@@ -90,10 +91,15 @@ void main() {
     // reading from textures, between 0 and 1
     float x = (gl_Vertex.x - gridXcenter)/(2.0*gridXhalflength)+0.5;
     float y = (gl_Vertex.y - gridYcenter)/(2.0*gridYhalflength)+0.5;
-    u = texture2D( oceanSurface, vec2(x,y)).xy;
+    u = texture2D( oceanSurfaceU, vec2(x,y)).xy;
+    vec3 dP = texture2D( oceanSurfaceP, vec2(x,y)).xyz;
 
+    P = vec3(u + dP.xy, dP.z);
+    gl_Position = worldToScreen * vec4(P, 1.0);
+
+/*
     //-- NORMAL computation
-    //u = oceanPos(gl_Vertex);
+    u = oceanPos(gl_Vertex);
     vec2 ux = oceanPos(gl_Vertex + vec4(gridSize.x, 0.0, 0.0, 0.0));
     vec2 uy = oceanPos(gl_Vertex + vec4(0.0, gridSize.y, 0.0, 0.0));
 
@@ -119,7 +125,7 @@ void main() {
 
     // Final position
     gl_Position = worldToScreen * vec4(P, 1.0);
-
+*/
 }
 
 #endif

@@ -42,7 +42,8 @@ enum {
 	TEXTURE_FFT_PONG,
 	TEXTURE_BUTTERFLY,
     TEXTURE_GAUSSZ,
-    TEXTURE_OCEAN_POSITION, /* TEST ALEXIS */
+    TEXTURE_OCEAN_POSITION_U, /* TEST ALEXIS */
+    TEXTURE_OCEAN_POSITION_P,
     TEXTURE_PART_POSITION,
     TEXTURE_PART_VELOCITY,
     TEXTURE_PART_LIFETIME,
@@ -376,7 +377,7 @@ void updateParticles()
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION_U);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
     glUniform4f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "GRID_SIZES"), GRID1_SIZE, GRID2_SIZE, GRID3_SIZE, GRID4_SIZE);
     glUniform2f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "gridSize"), gridSize/float(window::width), gridSize/float(window::height));
@@ -1402,7 +1403,8 @@ void redisplayFunc() {
 
     glUseProgram(programs[PROGRAM_RENDER_OCEAN]->program);
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "fftWavesSampler"), TEXTURE_FFT_PING);
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurface"), TEXTURE_OCEAN_POSITION);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceU"), TEXTURE_OCEAN_POSITION_U);
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceP"), TEXTURE_OCEAN_POSITION_P);
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "screenToCamera"), 1, true, proj.inverse().coefficients());
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "cameraToWorld"), 1, true, view.inverse().coefficients());
     glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToCamera"), 1, true, view.coefficients());
@@ -1954,14 +1956,20 @@ int main(int argc, char* argv[]) {
     delete[] data;
 
     // ocean position
-    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION);
-        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION]);
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_U);
+        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_U]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,FFT_SIZE, FFT_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
-
+    glActiveTexture(GL_TEXTURE0 + TEXTURE_OCEAN_POSITION_P);
+        glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_P]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,FFT_SIZE, FFT_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
 /**/
     generateWavesSpectrum(); // initial data pour TEXTURE_SPECTRUM12 et TEXTURE_SPECTRUM34
 
@@ -2018,8 +2026,9 @@ int main(int argc, char* argv[]) {
         glFramebufferTexture1DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,GL_TEXTURE_1D, textures[TEXTURE_PART_VELOCITY_NEW], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_OCEAN_POSITION]);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION], 0);
+        glDrawBuffers(2, drawBuffers);
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_U], 0);
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_TEXTURE_2D, textures[TEXTURE_OCEAN_POSITION_P], 0);
 /**/
 	// back to default framebuffer
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
