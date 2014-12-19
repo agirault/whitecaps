@@ -22,6 +22,7 @@ uniform float lifeLossStep;
 uniform float dt;
 
 uniform sampler2D oceanSurfaceP;	// ocean surface already sampled
+uniform mat4 worldToScreen; // world space to screen space
 
 void main()
 {
@@ -42,7 +43,9 @@ void main()
         // TODO : the way I sample the texture right now is wrong !
         // I need to do u = oceanPos(gl_Vertex) "inverse" to find where to sample in oceanSurfaceU and oceanSurfaceP : gridPos(x,y)
         // This is why right now the particles stay on the 0 height level and don't stick to the sea
-        vec3 dP = texture2D( oceanSurfaceP, vec2(newPos.x, newPos.y)).xyz;
+        vec4 test = worldToScreen * vec4(newPos.x, newPos.y,0.0,1.0);
+        test /= test.w;
+        vec3 dP = texture2D( oceanSurfaceP, vec2(test.x, test.y)).xyz;
 
         // Check State
         if(newPos.z <= dP.z)

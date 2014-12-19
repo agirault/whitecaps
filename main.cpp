@@ -198,8 +198,8 @@ float jacobian_scale = 0.2f;
 //particles
 bool renderParticles = true;
 const int PARTICLES_NUMBER = 10000;
-const float PARTICLES_SIZE = 500;
-const float PARTICLES_COLOR[3] = {1.0, 0.0, 0.0};
+const float PARTICLES_SIZE = 200;
+const float PARTICLES_COLOR[3] = {1.0, 1.0, 1.0};
 const float PARTICLE_POS_ORDER = 25;
 const float PARTICLE_VEL_ORDER = 4;
 const float PARTICLE_LIFE_ORDER = 1;
@@ -362,7 +362,7 @@ void drawParticles(const mat4f &proj, const mat4f &view)
     glDisable(GL_BLEND);
 }
 
-void updateParticles()
+void updateParticles(const mat4f &mat)
 {
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
@@ -378,6 +378,7 @@ void updateParticles()
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
     glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceP"), TEXTURE_OCEAN_POSITION_P);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToScreen"), 1, true, mat.coefficients());
     drawQuad();
 }
 
@@ -1351,7 +1352,7 @@ void redisplayFunc() {
     if(animate && speed != 0.0 )
     {
         moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
-        updateParticles();
+        updateParticles(proj * view);
     }
 /* FIN TEST */
 
