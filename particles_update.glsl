@@ -23,6 +23,8 @@ uniform float dt;
 
 uniform sampler2D oceanSurfaceP;	// ocean surface already sampled
 uniform mat4 worldToScreen; // world space to screen space
+uniform vec3 worldCamera;
+uniform float farClipping;
 
 void main()
 {
@@ -31,43 +33,61 @@ void main()
     lifetime -= lifeLossStep*dt;
     if(lifetime > 0.0)  //-- make particle move and age
     {
-        gl_FragData[2] = vec4(lifetime,0.0,0.0,0.0);
-
         // Particle Position
         vec3 oldPos = texture1D(pointsOldPosition, u).rgb;
         vec3 oldVel = texture1D(pointsOldVelocity, u).rgb;
         vec3 grav = vec3(0.0,0.0,-gravity);
         vec3 newPos = oldPos + oldVel*dt + grav*dt*dt;
 
-        // Ocean Position
-        // TODO : the way I sample the texture right now is wrong !
-        // I need to do u = oceanPos(gl_Vertex) "inverse" to find where to sample in oceanSurfaceU and oceanSurfaceP : gridPos(x,y)
-        // This is why right now the particles stay on the 0 height level and don't stick to the sea
-        vec4 test = worldToScreen * vec4(newPos.x, newPos.y,0.0,1.0);
-        test /= test.w;
-        vec3 dP = texture2D( oceanSurfaceP, vec2(test.x, test.y)).xyz;
-
-        // Check State
-        if(newPos.z <= dP.z)
+        // Test far clipping
+        vec3 dist = worldCamera-newPos;
+        float distnorm2 = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+        if(distnorm2 > farClipping*farClipping) //-- Remove because too far
         {
-            gl_FragData[0] = vec4(newPos.xy + dP.xy,dP.z,1.0); //does not work because... see TODO above
-            gl_FragData[1] = vec4(grav, 1.0);
+            gl_FragData[2] = vec4(0.0, 0.0, 0.0, 1.0);
         }
-        else
+        else //-- close enough : update
         {
-            vec3 newVel = (newPos - oldPos)/dt;
-            gl_FragData[0] = vec4(newPos, 1.0);
-            gl_FragData[1] = vec4(newVel, 1.0);
-        }
+            gl_FragData[2] = vec4(lifetime,0.0,0.0,0.0);
 
+            // Ocean Position
+            // TODO : the way I sample the texture right now after only using worldToScreen on newPos is wrong !
+            // I need to do u = oceanPos(gl_Vertex) "inverse" to find where to sample in oceanSurfaceU and oceanSurfaceP : gridPos(x,y)
+            vec4 test = worldToScreen * vec4(newPos.x, newPos.y,0.0,1.0);
+            test /= test.w;
+            vec3 dP = texture2D( oceanSurfaceP, vec2(test.x, test.y)).xyz;
+
+            if(newPos.z <= dP.z) //-- under the water : becomes FOAM
+            {
+                gl_FragData[0] = vec4(newPos.xy + dP.xy,dP.z,1.0); //does not work because... see TODO above
+                gl_FragData[1] = vec4(grav, 1.0);
+            }
+            else //-- above the water : stays SPLASH
+            {
+                vec3 newVel = (newPos - oldPos)/dt;
+                gl_FragData[0] = vec4(newPos, 1.0);
+                gl_FragData[1] = vec4(newVel, 1.0);
+            }
+        }
     }
     else    //-- create new particle instead of dead one
     {
         vec3 newPos = texture1D(pointsNewPosition, u).rgb;
         vec3 newVel = texture1D(pointsNewVelocity, u).rgb;
-        gl_FragData[0] = vec4(newPos, 1.0);
-        gl_FragData[1] = vec4(newVel, 1.0);
-        gl_FragData[2] = vec4(1.0, 0.0, 0.0, 1.0);
+        // Test far clipping
+        vec3 dist = worldCamera-newPos;
+        float distnorm2 = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+        if(distnorm2 > farClipping*farClipping) //-- Remove because too far
+        {
+            gl_FragData[2] = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+        else //-- close enough : update
+        {
+            gl_FragData[0] = vec4(newPos, 1.0);
+            gl_FragData[1] = vec4(newVel, 1.0);
+            gl_FragData[2] = vec4(1.0, 0.0, 0.0, 1.0);
+
+        }
     }
 }
 

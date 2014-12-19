@@ -205,6 +205,7 @@ const float PARTICLE_VEL_ORDER = 4;
 const float PARTICLE_LIFE_ORDER = 1;
 const float gravity = 0.05;
 const float lifeLossStep = 0.002;
+const float farClipping = 800.0;
 
 float MOVE_X = 0.0;
 float MOVE_Y = 0.0;
@@ -362,7 +363,7 @@ void drawParticles(const mat4f &proj, const mat4f &view)
     glDisable(GL_BLEND);
 }
 
-void updateParticles(const mat4f &mat)
+void updateParticles(const mat4f &proj, const mat4f &view)
 {
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffers[FRAMEBUFFER_PARTICLES]);
@@ -377,8 +378,10 @@ void updateParticles(const mat4f &mat)
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "lifeLossStep"), lifeLossStep);
     glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "dt"), speed);
 
-    glUniform1i(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "oceanSurfaceP"), TEXTURE_OCEAN_POSITION_P);
-    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_RENDER_OCEAN]->program, "worldToScreen"), 1, true, mat.coefficients());
+    glUniform1i(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "oceanSurfaceP"), TEXTURE_OCEAN_POSITION_P);
+    glUniformMatrix4fv(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "worldToScreen"), 1, true, (proj*view).coefficients());
+    glUniform3f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "worldCamera"),  view.inverse()[0][3], view.inverse()[1][3], view.inverse()[2][3]);
+    glUniform1f(glGetUniformLocation(programs[PROGRAM_UPDATE_PARTICLES]->program, "farClipping"), farClipping);
     drawQuad();
 }
 
@@ -1352,7 +1355,7 @@ void redisplayFunc() {
     if(animate && speed != 0.0 )
     {
         moveParticles(MOVE_X,MOVE_Y,MOVE_Z,MOVE_S);
-        updateParticles(proj * view);
+        updateParticles(proj, view);
     }
 /* FIN TEST */
 
