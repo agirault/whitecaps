@@ -59,7 +59,7 @@ void main()
 
             if(newPos.z <= dP.z) //-- under the water : becomes FOAM
             {
-                gl_FragData[0] = vec4(newPos.xy + dP.xy,dP.z,1.0); //does not work because... see TODO above
+                gl_FragData[0] = vec4(newPos.xy,dP.z,1.0); //does not work because... see TODO above
                 gl_FragData[1] = vec4(grav, 1.0);
             }
             else //-- above the water : stays SPLASH
